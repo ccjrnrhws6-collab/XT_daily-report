@@ -1,0 +1,3151 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="日報表">
+<meta name="theme-color" content="#0e6060">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="pwa/icon-152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="pwa/icon-192.png">
+<link rel="apple-touch-startup-image" href="pwa/icon-512.png">
+<title>施工日報表</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  /* ── 淡色灰藍極簡系 ── */
+  --pri:#4a6fa5;       /* 霧藍主色 */
+  --pri-d:#3d5a80;     /* 深霧藍 */
+  --pri-l:#6b8cb5;     /* 淡霧藍 */
+  --acc:#4a6fa5;
+  --ok:#059669;
+  --danger:#dc2626;
+  --g50:#f7f9fc;       /* 帶藍霧的近白 */
+  --g100:#eef2f8;      /* 極淡灰藍 */
+  --g200:#dde5f0;      /* 淡灰藍 */
+  --g300:#c3cfe0;
+  --g400:#94a3b8;
+  --g500:#64748b;
+  --g600:#475569;
+  --g700:#334155;
+  --g800:#1e293b;
+  --r:10px;
+  --sh:0 1px 3px rgba(74,111,165,.08),0 1px 2px rgba(74,111,165,.04);
+}
+body{font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  background:var(--g100);color:var(--g800);min-height:100vh;}
+.topbar{background:#dce8f5;color:#1a2a3a;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 #b8cce0,0 2px 6px rgba(40,80,120,.06);}
+.topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;}
+.topbar h1{font-size:17px;font-weight:700;color:#1a2a3a;}
+.co-nm{font-size:11px;color:#4a6a88;}
+.tbtns{display:flex;gap:8px;}
+.tbtn{border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 12px;border-radius:20px;font-size:13px;cursor:pointer;font-weight:600;background:rgba(255,255,255,.15);}
+.tbtn.pdf{background:var(--acc);border-color:var(--acc);color:#1f2937;font-size:13px;padding:7px 14px;font-weight:700;}
+.tab-nav{display:flex;background:#eef4fb;border-bottom:1px solid #c0d0e0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x;overscroll-behavior-x:contain;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{flex:none;padding:10px 14px;font-size:13px;font-weight:500;color:#7a9ab8;border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab-btn.active{color:#2a5080;border-bottom-color:#3a6a9a;font-weight:700;}
+.main{padding:14px;max-width:720px;margin:0 auto;}
+.sec{display:none;}.sec.active{display:block;}
+.card{background:#fff;border-radius:var(--r);box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:14px;overflow:hidden;}
+.chd{background:#3d6b9a;color:#ffffff;padding:11px 16px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;letter-spacing:0.2px;}
+.cbd{padding:14px;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fg1{grid-template-columns:1fr;}
+.fld{display:flex;flex-direction:column;gap:4px;}
+label{font-size:11px;font-weight:600;color:var(--g600);}
+input,select,textarea{width:100%;padding:9px 11px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;color:var(--g800);background:#f9fafb;font-family:inherit;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(26,86,219,.1);background:#fff;}
+textarea{resize:vertical;min-height:80px;line-height:1.5;}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:6px 12px;border-radius:20px;border:1.5px solid #dde5f0;font-size:13px;cursor:pointer;background:#f7f9fc;user-select:none;color:#475569;}
+.chip.s-ok{border-color:var(--ok);background:var(--ok);color:#fff;}
+.chip.s-bh{border-color:var(--danger);background:var(--danger);color:#fff;}
+.chip.s-ah{border-color:var(--pri);background:var(--pri);color:#fff;}
+.chip.s-sun{border-color:var(--acc);background:var(--acc);color:#1f2937;}
+.chip.s-cld{border-color:#8b5cf6;background:#8b5cf6;color:#fff;}
+.chip.s-ran{border-color:#3b82f6;background:#3b82f6;color:#fff;}
+.sbar{display:flex;gap:10px;margin-bottom:14px;}
+.si{flex:1;background:#fff;border-radius:10px;padding:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center;}
+.sn{font-size:20px;font-weight:700;color:#3a6a9a;}
+.sl{font-size:10px;color:#6a9ab8;margin-top:2px;letter-spacing:0.3px;}
+.dtw{overflow-x:auto;}
+.dt{width:100%;border-collapse:collapse;font-size:12px;min-width:500px;}
+.dt th{background:var(--g100);color:var(--g600);font-weight:700;padding:6px 4px;text-align:center;border:1px solid var(--g200);font-size:11px;white-space:nowrap;}
+.dt td{border:1px solid var(--g200);padding:2px;}
+.dt td input,.dt td select{border:none;background:transparent;padding:4px;font-size:12px;border-radius:3px;min-width:0;}
+.dt td input:focus,.dt td select:focus{background:rgba(26,86,219,.05);}
+.nc{width:24px;text-align:center;color:var(--g500);font-size:11px;}
+.dc{width:26px;text-align:center;}
+.dbtn{background:none;border:none;color:var(--danger);font-size:15px;cursor:pointer;padding:2px 3px;}
+.addbtn{display:flex;align-items:center;gap:6px;padding:9px 14px;background:#f9fafb;border:1.5px dashed var(--g300);border-radius:8px;color:var(--g500);font-size:12px;font-weight:600;cursor:pointer;width:100%;justify-content:center;margin-top:7px;}
+.addbtn:hover{border-color:var(--pri);color:var(--pri);}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pslot{border:2px dashed var(--g300);border-radius:var(--r);overflow:hidden;background:#f9fafb;position:relative;cursor:pointer;}
+.pslot.hi{border-style:solid;border-color:var(--g200);}
+.pimgw{aspect-ratio:4/3;overflow:hidden;}
+.pimgw img{width:100%;height:100%;object-fit:cover;display:block;}
+.pph{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:4/3;color:var(--g500);gap:5px;font-size:12px;}
+.pph .ico{font-size:26px;}
+.pcap{background:rgba(0,0,0,.5);padding:4px 8px;}
+.pcap input{background:transparent;border:none;color:#fff;font-size:12px;width:100%;padding:0;}
+.pcap input::placeholder{color:rgba(255,255,255,.6);}
+.pcap input:focus{background:transparent!important;box-shadow:none!important;border-color:transparent!important;color:#fff!important;outline:none;}
+.prmb{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.45);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;}
+.pslot.hi .prmb{display:flex;}
+.apbtn{border:2px dashed var(--g300);border-radius:var(--r);background:#f9fafb;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--g500);font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:10px;}
+.apbtn:hover{border-color:var(--pri);color:var(--pri);}
+.botbar{position:fixed;bottom:0;left:0;right:0;background:#edf4fb;border-top:1px solid #b8cce0;padding:10px 16px;display:flex;gap:8px;z-index:50;}
+.botbar button{flex:1;padding:11px;border-radius:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;}
+.bsave{background:#d8e8f5;color:#2a4a6a;border:1px solid #a8c0d8;}
+.bprev{background:var(--pri);color:#fff;}
+/* Preview modal */
+#pvmod{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);overflow-y:auto;}
+#pvmod.show{display:block;}
+.pvtop{position:sticky;top:0;background:#1f2937;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
+.pvtop h2{font-size:15px;font-weight:700;}
+.pvtop-btns{display:flex;gap:8px;}
+.pvbtn{border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;}
+.pvbtn.close{background:rgba(255,255,255,.15);color:#fff;}
+.pvbtn.go{background:var(--acc);color:#1f2937;}
+.pv-body{padding:12px;}
+.pv-page{background:#fff;margin:0 auto 16px;padding:14px 16px;border-radius:8px;max-width:700px;font-family:"PingFang TC","Microsoft JhengHei",sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.15);}
+.pv-page table{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:0;}
+.pv-page table td,.pv-page table th{border:.5pt solid #000;padding:.5pt 2pt;vertical-align:middle;text-align:center;font-size:7pt;line-height:1.2;}
+.pv-page table th{font-weight:bold;}
+.pv-page .bl{background:#92CDDC;}
+.pv-page .tl{text-align:left!important;}
+.pv-page .pt+.pt tr:first-child td,.pv-page .pt+.pt tr:first-child th{border-top:none!important;}
+.pv-badge{display:inline-block;background:#1a56db;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:8px;}
+.bpdf{background:#2a5080;color:#ffffff;flex:2;font-size:14px;}
+.sb{height:70px;}
+#toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--g800);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:999;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@media (max-width:480px){.fg{grid-template-columns:1fr;}.sn{font-size:17px;}}
+
+/* PWA 安裝提示 */
+#pwa-install-banner{
+  display:none;position:fixed;bottom:80px;left:12px;right:12px;z-index:300;
+  background:#1f2937;color:#fff;border-radius:12px;padding:12px 14px;
+  align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+#pwa-install-banner .pwa-icon{font-size:24px;flex-shrink:0;}
+#pwa-install-banner .pwa-text{flex:1;font-size:12px;line-height:1.5;}
+#pwa-install-banner .pwa-text strong{display:block;font-size:13px;margin-bottom:2px;}
+#pwa-install-banner .pwa-close{background:rgba(255,255,255,.15);border:none;color:#fff;
+  padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;}
+
+/* ── 工程管理 ── */
+.proj-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--g200);background:#fff;}
+.proj-item:last-child{border-bottom:none;}
+.proj-item-info{flex:1;min-width:0;}
+.proj-item-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.proj-item-sub{font-size:12px;color:var(--g500);margin-top:2px;}
+.proj-item-btns{display:flex;gap:6px;flex-shrink:0;}
+.admin-form-card{background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:var(--r);padding:14px;margin-bottom:14px;}
+.admin-section{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden;}
+.admin-section-hd{background:linear-gradient(135deg,#374151,#1f2937);color:#fff;padding:11px 14px;font-size:13px;font-weight:700;}
+.admin-pin-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:14px;}
+.pin-input{text-align:center;font-size:20px;letter-spacing:6px;width:150px;padding:12px;}
+.proj-empty{text-align:center;color:var(--g400);padding:24px;font-size:13px;}
+.sel-note{font-size:11px;color:var(--g500);margin-top:3px;}
+
+#draft-modal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);overflow-y:auto;}
+#draft-modal.show{display:block;}
+.draft-top{position:sticky;top:0;background:#1f2937;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
+.draft-top h2{font-size:15px;font-weight:700;}
+.draft-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--g200);background:#fff;}
+.draft-item:last-child{border-bottom:none;}
+.draft-item-info{flex:1;min-width:0;}
+.draft-item-ono{font-weight:700;font-size:14px;}
+.draft-item-sub{font-size:11px;color:var(--g500);margin-top:2px;}
+.draft-banner{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+
+/* ─ 上方動作列 ─ */
+.action-bar{display:flex;background:#c8daf0;padding:5px 8px;gap:4px;}
+.action-bar button{flex:1;min-width:0;padding:7px 2px;background:rgba(255,255,255,.5);
+  border:1px solid rgba(61,90,128,.3);color:#1e3a5f;border-radius:6px;
+  font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;}
+.action-bar .btn-new{background:rgba(5,150,105,.25);border-color:#059669;color:#065f46;}
+.action-bar .btn-pdf{background:rgba(255,255,255,.5);border-color:rgba(61,90,128,.3);color:#1e3a5f;}
+/* 移除底部列 */
+.botbar{display:none!important;}
+.sb{height:8px!important;}
+
+/* ── 翔天品牌樣式 ── */
+.xt-logo-mark{display:flex;align-items:center;gap:0;}
+.topbar-brand{display:flex;align-items:center;gap:10px;}
+.topbar h1{font-size:17px;font-weight:700;letter-spacing:.5px;}
+.co-nm{font-size:10px;opacity:.75;letter-spacing:.3px;}
+/* 進度選單 - 品牌色 */
+.pc.s-ok{border-color:var(--pri);background:var(--pri);color:#fff;}
+.pc.s-bh{border-color:#c0362d;background:#c0362d;color:#fff;}
+.pc.s-ah{border-color:var(--acc);background:var(--acc);color:#0a2020;}
+/* 天氣選單 */
+.wc.s-sun{border-color:var(--acc);background:linear-gradient(135deg,#a88520,#c9a227);color:#0a2020;}
+.wc.s-cld{border-color:#4a7070;background:#4a7070;color:#fff;}
+.wc.s-ran{border-color:var(--pri);background:var(--pri);color:#fff;}
+/* 儲存按鈕 */
+.bsave{background:var(--g100);color:var(--pri-d);border:1.5px solid var(--g200);font-weight:600;}
+.bsave:hover{background:var(--g200);}
+/* 草稿按鈕 */
+.bsave[onclick*="Draft"]{background:var(--pri);color:#fff;border-color:var(--pri);}
+/* 統計數字 */
+.sn{font-size:20px;font-weight:700;color:#3a6a9a;}
+/* 卡片邊框加青色調 */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden;border:1px solid rgba(14,96,96,.08);}
+/* input focus 改青色 */
+input:focus,select:focus,textarea:focus{border-color:var(--pri)!important;box-shadow:0 0 0 3px rgba(14,96,96,.15)!important;}
+/* 管理員 section 風格 */
+.admin-section-hd{background:linear-gradient(135deg,#0a4545,#0e6060);}
+/* 草稿 modal 頭部 */
+.draft-top{background:linear-gradient(135deg,#0a4545,#0e6060);}
+/* 預覽 modal 頭部 */
+.pvtop{background:linear-gradient(135deg,#0a4545,#0e6060);}
+/* PDF overlay 頭部 */
+#pdf-ov .pvtop, .pdf-top{background:linear-gradient(135deg,#0a4545,#0e6060);}
+/* tab nav 底部裝飾 */
+.tab-nav{border-bottom-color:var(--g200);}
+/* 底部按鈕列 */
+.botbar{background:rgba(255,255,255,.97);backdrop-filter:blur(8px);}
+/* 工程資訊提示色 */
+.sel-note{color:var(--pri-l);}
+/* 草稿 banner */
+.draft-banner{background:linear-gradient(135deg,rgba(14,96,96,.06),rgba(201,162,39,.08));border-color:rgba(14,96,96,.2);}
+
+
+/* ── 海報多色風格補充 ── */
+
+/* Topbar 標題強調 */
+.topbar h1{font-size:17px;font-weight:800;letter-spacing:.8px;
+  text-shadow:0 1px 4px rgba(0,0,0,.4);}
+.co-nm{font-size:10px;opacity:.75;letter-spacing:.5px;font-weight:500;}
+
+/* Tab 頁籤 */
+.tab-nav{border-bottom:2px solid rgba(13,74,94,.15);}
+.tab-btn.active{color:#2a5080;border-bottom-color:#3a6a9a;font-weight:700;}
+
+/* 卡片 - 增加立體感 */
+.card{background:#fff;border-radius:var(--r);
+  box-shadow:0 2px 8px rgba(8,30,42,.08),0 6px 24px rgba(8,30,42,.06);
+  margin-bottom:14px;overflow:hidden;
+  border:1px solid rgba(13,74,94,.08);}
+
+/* 卡片頭部文字 */
+.chd{color:#fff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.3);}
+
+/* 進度按鈕 - 海報色 */
+.pc.s-ok{border-color:#3a6a9a;background:#3a6a9a;color:#fff;}
+.pc.s-bh{border-color:#7a4a4a;background:#7a4a4a;color:#fff;}
+.pc.s-ah{border-color:#5a7a9a;background:#5a7a9a;color:#fff;}
+
+/* 天氣按鈕 */
+.wc.s-sun{border-color:#7a8a5a;background:#7a8a5a;color:#fff;}
+.wc.s-cld{border-color:#6a8a9a;background:#6a8a9a;color:#fff;}
+.wc.s-ran{border-color:#3a6080;background:#3a6080;color:#fff;}
+
+/* 統計數字 */
+.sn{font-size:22px;font-weight:900;color:var(--pri);letter-spacing:-1px;}
+
+/* Bottom bar */
+.botbar{background:rgba(248,250,252,.97);backdrop-filter:blur(10px);
+  border-top:2px solid rgba(13,74,94,.1);}
+.bsave{background:var(--g100);color:var(--g600);border:1.5px solid var(--g200);}
+
+/* PDF 按鈕 - 橙金色（行動呼籲）*/
+.bpdf{background:linear-gradient(135deg,#7a2a08,#c9612a,#d4803a);
+  color:#fff;font-weight:800;letter-spacing:.3px;
+  box-shadow:0 3px 12px rgba(201,97,42,.4);}
+
+/* Draft 按鈕 */
+.bsave[onclick*="Modal"]{background:linear-gradient(135deg,#0a2535,#0d4a5e);color:#fff;border-color:transparent;}
+
+/* Input focus */
+input:focus,select:focus,textarea:focus{
+  border-color:var(--pri)!important;
+  box-shadow:0 0 0 3px rgba(13,74,94,.15)!important;}
+
+/* Draft banner */
+.draft-banner{
+  background:linear-gradient(135deg,rgba(13,74,94,.06),rgba(201,97,42,.06));
+  border:1px solid rgba(13,74,94,.18);}
+.draft-banner .draft-banner-label{color:var(--pri);}
+.draft-banner-val{color:var(--acc)!important;}
+
+/* 管理員區塊 */
+.admin-section-hd{
+  background:linear-gradient(135deg,#081e2a 0%,#0d3a50 55%,#c9612a 100%);}
+.draft-top{background:linear-gradient(135deg,#081e2a,#0d4a5e);}
+.pvtop{background:linear-gradient(135deg,#081e2a,#0d4a5e);}
+
+/* 工程設定項目 */
+.proj-item{background:#fff;}
+.proj-item:hover{background:var(--g50);}
+
+/* Add btn */
+.addbtn:hover{border-color:var(--pri);color:var(--pri);}
+.apbtn:hover{border-color:var(--acc);color:var(--acc);}
+
+/* 選擇框 focus */
+.chip.s-ok{border-color:var(--pri);}
+
+
+/* ── 灰藍淡色系補充 ── */
+label{font-size:11px;font-weight:600;color:#5a7a9a;letter-spacing:0.4px;text-transform:uppercase;}
+.addbtn{border-color:#c0d0e0;color:#5a7a9a;}
+.addbtn:hover{border-color:#3a6a9a;color:#2a5080;background:#e8f2fb;}
+.chip{border-color:#c0d0e0;color:#4a6a8a;}
+.sbar .si{border:1px solid #d0dcea;box-shadow:0 1px 3px rgba(40,80,120,.06);}
+.dt th{background:#e8f0f8;color:#2a4a6a;border-color:#c8d8e8;font-weight:600;letter-spacing:0.3px;}
+.dt td{border-color:#dce8f5;}
+.draft-banner{background:#f0f6fc;border-color:#b8cce0;}
+.admin-section-hd{background:#2a5080;}
+.draft-top{background:#2a5080;}
+.pvtop{background:#2a5080;}
+input,select,textarea{border-color:#c8d8e8;background:#f8fbfe;}
+.proj-item:hover{background:#f0f6fc;}
+
+/* ── 淡色灰藍補充 ── */
+.chip{border-color:#d0dce8;color:#4a6070;background:#f7f9fc;}
+.addbtn{border-color:#d0dce8;color:#6a8099;background:#f7f9fc;}
+.addbtn:hover{border-color:#4a7fa8;color:#2d5f80;background:#eef4fa;}
+.sbar .si{border:1px solid #dde6f0;box-shadow:0 1px 3px rgba(74,127,168,.08);}
+.dt th{background:#eef2f7;color:#4a6070;border-color:#dde6f0;font-weight:600;}
+.dt td{border-color:#eef2f7;}
+.draft-banner{background:#f0f5fa;border:1px solid #dde6f0;}
+.admin-section-hd{background:#3a6a90;}
+.draft-top,.pvtop{background:#3a6a90;}
+label{font-size:11px;font-weight:600;color:#6a8099;letter-spacing:0.3px;}
+input,select,textarea{border-color:#d0dce8;background:#f7f9fc;}
+.topbar h1{color:#1e2d3a;}
+.botbar{background:#f0f5fa;border-top:1px solid #dde6f0;}
+
+
+/* ── 灰藍極簡補充 ── */
+input,select,textarea{background:#f7f9fc;border-color:#dde5f0;}
+input:focus,select:focus,textarea:focus{border-color:#4a6fa5!important;box-shadow:0 0 0 2px rgba(74,111,165,.12)!important;background:#fff!important;}
+.tab-btn svg{opacity:.65;}
+.tab-btn.active svg{opacity:1;}
+.tab-btn span{line-height:1;}
+.dt th{background:#f0f4f8!important;color:#475569;border-color:#dde5f0;letter-spacing:0.3px;}
+.dt td{border-color:#eef2f8;}
+.si{border-color:#dde5f0!important;}
+.sbar .si{background:#fff;}
+.addbtn{border-color:#dde5f0;color:#64748b;}
+.addbtn:hover{border-color:#4a6fa5;color:#4a6fa5;background:#f0f4f8;}
+.pslot{border-color:#dde5f0;background:#f7f9fc;}
+.pslot:hover{border-color:#4a6fa5;}
+.draft-banner{background:#f0f4f8;border-color:#dde5f0;}
+.admin-section-hd{background:#3d5a80;}
+.draft-top{background:#3d5a80;}
+.pvtop{background:#3d5a80;}
+.botbar{background:#f7f9fc;border-color:#dde5f0;}
+.sel-note{color:#94a3b8;}
+.proj-item{background:#fff;border-bottom-color:#eef2f8;}
+</style>
+<!-- PDF 生成函式庫 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div>
+      <div class="co-nm" id="dco">翔天科技事業股份有限公司</div>
+      <h1>施工日報表</h1>
+    </div>
+    <div id="user-status" style="display:none;align-items:center;gap:8px;flex-shrink:0">
+      <div id="sync-dot" title="雲端同步狀態" style="width:8px;height:8px;border-radius:50%;background:#94a3b8;flex-shrink:0"></div>
+      <div style="text-align:right">
+        <div id="user-name-label" style="font-size:12px;font-weight:700;color:#1a2a3a"></div>
+        <div id="user-group-label" style="font-size:10px;color:#4a6a88"></div>
+      </div>
+      <button onclick="showUserMenu()" style="background:rgba(74,111,165,.15);border:1px solid rgba(74,111,165,.3);color:#1e3a5f;padding:5px 10px;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer">⚙️</button>
+    </div>
+    <div id="login-btn-wrap">
+      <button onclick="showLoginModal()" style="background:var(--pri);color:#fff;border:none;padding:7px 14px;border-radius:16px;font-size:13px;font-weight:700;cursor:pointer">登入</button>
+    </div>
+  </div>
+  <!-- 五個主要動作按鈕 -->
+  <div class="action-bar">
+    <button class="btn-new" onclick="clearAllToDefault()" title="清空所有欄位">🆕 新增日報表</button>
+    <button onclick="showDraftModal()" title="載入歷史草稿">📂 匯入舊檔</button>
+    <button onclick="saveLocal()" title="儲存草稿"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 儲存</button>
+    <button onclick="showPreview()" title="預覽日報">👁 預覽</button>
+    <button onclick="showProjectStats()" title="累計統計報表" style="background:rgba(74,111,165,.2);border-color:rgba(74,111,165,.4);color:#1e3a5f;">📊 統計</button>
+    <button class="btn-pdf" onclick="doPDF()" title="輸出PDF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 輸出PDF</button>
+  </div>
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="swTab(0,this)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2v0a2 2 0 00-2-2h-2a2 2 0 00-2 2v0M9 12h6M9 16h4"/></svg><span>基本</span></button>
+    <button class="tab-btn" onclick="swTab(1,this)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8"/></svg><span>工作人員</span></button>
+    <button class="tab-btn" onclick="swTab(2,this)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg><span>材料</span></button>
+    <button class="tab-btn" onclick="swTab(3,this)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>機具</span></button>
+    <button class="tab-btn" onclick="swTab(4,this)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg><span>照片</span></button>
+    <button class="tab-btn" onclick="swTab(5,this)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg><span>附件</span></button>
+    <button class="tab-btn" onclick="swTab(6,this)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>管理</span></button>
+  </div>
+</div>
+<div class="main">
+<div class="sec active" id="t0">
+  <div class="sbar">
+    <div class="si"><div class="sn" id="sw">0</div><div class="sl">今日出工</div></div>
+    <div class="si"><div class="sn" id="si2">0</div><div class="sl">施工項目</div></div>
+    <div class="si"><div class="sn" id="sm">0</div><div class="sl">材料筆數</div></div>
+    <div class="si"><div class="sn" id="sp">0</div><div class="sl">施工照片</div></div>
+  </div>
+  <div class="draft-banner">
+    <div style="min-width:0;flex:1">
+      <div style="font-size:11px;font-weight:600;color:#1e40af">&#x76EE;&#x524D;&#x8349;&#x7A3F;</div>
+      <div id="draft-banner-text" style="font-size:12px;color:#2563eb;margin-top:1px">&#xFF08;&#x5C1A;&#x7121;&#x8349;&#x7A3F;&#xFF0C;&#x8ACB;&#x586B;&#x5BEB;&#x4E26;&#x5132;&#x5B58;&#xFF09;</div>
+    </div>
+    <button onclick="showDraftModal()" style="background:#1d4ed8;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> 草稿記錄</button>
+  </div>
+  <div class="card"><div class="chd"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2zM9 22V12h6v10"/></svg> 工程資訊</div><div class="cbd">
+    <div class="fg fg1">
+      <div class="fld"><label>公司名稱</label><input type="text" id="co" value="翔天科技事業股份有限公司" oninput="document.getElementById('dco').textContent=this.value"></div>
+      <div class="fld">
+        <label>工程名稱</label>
+        <select id="proj-sel" onchange="onProjSelect('proj-sel')" style="margin-bottom:5px">
+          <option value="">— 選擇已設定工程 —</option>
+        </select>
+        <input type="text" id="proj" placeholder="或直接輸入工程名稱">
+        <div class="sel-note">💡 選擇工程後自動帶出相關資訊</div>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:11px">
+      <div class="fld"><label>開工日期</label><input type="date" id="sdate"></div>
+      <div class="fld"><label>完工日期</label><input type="date" id="edate" onchange="calcD()"></div>
+      <div class="fld"><label>剩餘天數</label><input type="number" id="rem" readonly style="background:var(--g100);color:var(--g500)" placeholder="自動計算"></div>
+      <div class="fld">
+        <label>派任單號</label>
+        <select id="ono-sel" onchange="onProjSelect('ono-sel')" style="margin-bottom:5px">
+          <option value="">— 選擇已設定單號 —</option>
+        </select>
+        <input type="text" id="ono" placeholder="或直接輸入派任單號" onblur="checkAndSwitchCombo()">
+      </div>
+    </div>
+  </div></div>
+  <div class="card"><div class="chd"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg> 當日資訊</div><div class="cbd">
+    <div class="fg">
+      <div class="fld"><label>日期</label><input type="date" id="rdate" onchange="calcD();checkAndSwitchCombo()"></div>
+      <div class="fld">
+        <label>填寫人</label>
+        <select id="rep-sel" onchange="onNameSelect('rep-sel','rep')" style="margin-bottom:4px"><option value="">— 選擇人員 —</option></select>
+        <input type="text" id="rep" placeholder="或直接輸入姓名" oninput="syncFiller(this.value)">
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:5px">工程進度</label>
+      <div class="chips">
+        <div class="chip" onclick="selP('正常',this,'s-ok')">正常</div>
+        <div class="chip" onclick="selP('落後',this,'s-bh')">落後</div>
+        <div class="chip" onclick="selP('超前',this,'s-ah')">超前</div>
+      </div>
+      <input type="hidden" id="prog" value="正常">
+    </div>
+    <div style="margin-top:12px">
+      <label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:5px">天氣 — 上午</label>
+      <div class="chips" id="wamg">
+        <div class="chip" onclick="selW('am','晴',this,'s-sun')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> 晴</div>
+        <div class="chip" onclick="selW('am','陰',this,'s-cld')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg> 陰</div>
+        <div class="chip" onclick="selW('am','雨',this,'s-ran')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 15.25M8 19v1M8 23v1M16 19v1M16 23v1M12 21v1M12 17v1"/></svg> 雨</div>
+      </div>
+      <input type="hidden" id="wam" value="">
+    </div>
+    <div style="margin-top:10px">
+      <label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:5px">天氣 — 下午</label>
+      <div class="chips" id="wpmg">
+        <div class="chip" onclick="selW('pm','晴',this,'s-sun')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> 晴</div>
+        <div class="chip" onclick="selW('pm','陰',this,'s-cld')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg> 陰</div>
+        <div class="chip" onclick="selW('pm','雨',this,'s-ran')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 15.25M8 19v1M8 23v1M16 19v1M16 23v1M12 21v1M12 17v1"/></svg> 雨</div>
+      </div>
+      <input type="hidden" id="wpm" value="">
+    </div>
+  </div></div>
+  <div class="card"><div class="chd"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg> 異常事項 & 重要事項</div><div class="cbd">
+    <div class="fld"><label>異常事項</label><textarea id="abn" placeholder="填寫今日異常情況..." style="min-height:80px"></textarea></div>
+    <div class="fld" style="margin-top:11px"><label>重要事項</label><textarea id="imp" placeholder="填寫今日重要記事..." style="min-height:80px"></textarea></div>
+  </div></div>
+  <div class="card"><div class="chd"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg> 簽名欄</div><div class="cbd">
+    <div class="fg">
+      <div class="fld">
+        <label>會辦單位</label>
+        <select id="sc-sel" onchange="onDeptSelect('sc-sel','sc')" style="margin-bottom:4px"><option value="">— 選擇部門 —</option></select>
+        <input type="text" id="sc" placeholder="或直接輸入單位">
+      </div>
+      <div class="fld">
+        <label>主管</label>
+        <select id="smgr-sel" onchange="onNameSelect('smgr-sel','smgr')" style="margin-bottom:4px"><option value="">— 選擇人員 —</option></select>
+        <input type="text" id="smgr" placeholder="或直接輸入姓名">
+      </div>
+      <div class="fld">
+        <label>校閱</label>
+        <select id="srev-sel" onchange="onNameSelect('srev-sel','srev')" style="margin-bottom:4px"><option value="">— 選擇人員 —</option></select>
+        <input type="text" id="srev" placeholder="或直接輸入姓名">
+      </div>
+      <div class="fld">
+        <label>填表</label>
+        <select id="sfil-sel" onchange="onNameSelect('sfil-sel','sfil')" style="margin-bottom:4px"><option value="">— 選擇人員 —</option></select>
+        <input type="text" id="sfil" placeholder="或直接輸入姓名">
+      </div>
+    </div>
+  </div></div>
+</div>
+<div class="sec" id="t1">
+  <div class="card"><div class="chd"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8"/></svg> 每日工作人員及工作摘要（最多14筆）</div>
+  <div class="cbd" style="padding:10px">
+    <div class="dtw"><table class="dt">
+      <thead><tr>
+        <th class="nc">項</th><th style="min-width:50px">進度</th>
+        <th style="min-width:74px">工程種類</th><th style="min-width:80px">工程項目</th>
+        <th style="min-width:50px">廠商</th><th style="min-width:40px">上午</th>
+        <th style="min-width:40px">下午</th><th style="min-width:53px">進場</th>
+        <th style="min-width:53px">離場</th><th style="min-width:110px">本日施作內容</th>
+        <th class="dc"></th>
+      </tr></thead>
+      <tbody id="wb"></tbody>
+    </table></div>
+    <button class="addbtn" id="addwbtn" onclick="addW()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 新增工程項目</button>
+  </div></div>
+</div>
+<div class="sec" id="t2">
+  <div class="card"><div class="chd" style="justify-content:space-between"><span style="display:flex;align-items:center;gap:8px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg> 材料進場數量統計表（最多10筆）</span><button onclick="calcAllCumulatives()" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:#fff;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0">🔄 計算累計</button></div>
+  <div class="cbd" style="padding:10px">
+    <div class="dtw"><table class="dt">
+      <thead><tr>
+        <th class="nc">項</th><th style="min-width:86px">材料名稱</th>
+        <th style="min-width:74px">規格</th><th style="min-width:56px">本日進料</th>
+        <th style="min-width:56px">累計</th><th style="min-width:42px">單位</th>
+        <th style="min-width:86px">備註</th><th class="dc"></th>
+      </tr></thead>
+      <tbody id="mb"></tbody>
+    </table></div>
+    <button class="addbtn" id="addmbtn" onclick="addM()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 新增材料</button>
+  </div></div>
+</div>
+<div class="sec" id="t3">
+  <div class="card"><div class="chd"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> 機具進場數量統計表（最多10筆）</div>
+  <div class="cbd" style="padding:10px">
+    <div class="dtw"><table class="dt">
+      <thead><tr>
+        <th class="nc">項</th><th style="min-width:96px">機具名稱</th>
+        <th style="min-width:74px">廠商</th><th style="min-width:40px">上午</th>
+        <th style="min-width:40px">下午</th><th style="min-width:110px">工作內容</th>
+        <th class="dc"></th>
+      </tr></thead>
+      <tbody id="eb"></tbody>
+    </table></div>
+    <button class="addbtn" id="addebtn" onclick="addE()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 新增機具</button>
+  </div></div>
+</div>
+<div class="sec" id="t4">
+  <div class="card"><div class="chd"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> 施工現場照片（2欄排列，含說明）</div><div class="cbd">
+    <p style="font-size:12px;color:var(--g500);margin-bottom:10px">
+      點擊相框上傳照片 → 輸入說明文字 → 照片將依序排入PDF（每頁最多6張）
+    </p>
+    <div class="pgrid" id="pgrid"></div>
+    <button class="apbtn" onclick="addPh()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> 新增照片欄</button>
+  </div></div>
+</div>
+<div class="sec" id="t5">
+  <div class="card"><div class="chd"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg> 附件文件（PDF 或圖片，輸出時整合在照片之後）</div><div class="cbd">
+    <p style="font-size:12px;color:var(--g500);margin-bottom:10px">上傳 PDF（可多頁）或照片，每份附件以完整頁面插入日報 PDF 輸出。<br><span style="color:#e07b00">⚠️ 建議單份附件不超過 5MB，以免本地儲存空間不足。</span></p>
+    <div id="att-list"></div>
+    <button class="apbtn" onclick="openAttPicker()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg> 新增附件</button>
+    <input type="file" id="att-file-inp" accept=".pdf,image/*" multiple style="display:none" onchange="handleAttFiles(this)">
+  </div></div>
+</div>
+<div class="sec" id="t6">
+  <!-- ▼ 公開區：匯入設定碼（不需登入）▼ -->
+  <div class="admin-section">
+    <div class="admin-section-hd"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> 匯入設定碼（不需登入）</div>
+    <div style="padding:14px">
+      <p style="font-size:12px;color:var(--g600);margin-bottom:10px">
+        取得管理員提供的設定碼後，貼上點「匯入」即可同步所有工程、人員、部門設定
+      </p>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="pub-import-code" placeholder="貼上設定碼..." style="flex:1;font-size:12px">
+        <button onclick="pubImportSettings()" style="background:#1d6f42;color:#fff;border:none;padding:9px 16px;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap;font-size:13px">匯入</button>
+      </div>
+      <div id="pub-import-result" style="font-size:12px;color:var(--g500)"></div>
+    </div>
+  </div>
+
+  <!-- 鎖定區 -->
+  <div class="admin-section" id="admin-lock">
+    <div class="admin-section-hd"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 管理員登入</div>
+    <div class="admin-pin-box">
+      <div style="font-size:13px;color:var(--g600);text-align:center">請輸入管理員密碼<br><span style="font-size:11px;color:var(--g400)">預設密碼：1234</span></div>
+      <input type="password" id="admin-pin-input" class="pin-input" placeholder="••••" maxlength="8" onkeydown="if(event.key==='Enter')adminUnlockCheck()">
+      <button onclick="adminUnlockCheck()" style="background:var(--pri);color:#fff;border:none;padding:11px 32px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;">登入</button>
+    </div>
+  </div>
+
+  <!-- 管理內容 -->
+  <div id="admin-content" style="display:none">
+
+    <!-- 工程列表 -->
+    <div class="admin-section">
+      <div class="admin-section-hd" style="display:flex;justify-content:space-between;align-items:center">
+        <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> 工程設定</span>
+        <button onclick="showAddProject()" style="background:#10b981;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">＋ 新增工程</button>
+      </div>
+      <div id="admin-proj-list"><div class="proj-empty">尚無工程，點右上角「＋ 新增工程」開始</div></div>
+    </div>
+
+    <!-- 新增/編輯表單 -->
+    <div class="admin-form-card" id="proj-form" style="display:none">
+      <div style="font-weight:700;font-size:14px;margin-bottom:12px;color:#0369a1" id="proj-form-title">新增工程</div>
+      <input type="hidden" id="proj-form-idx" value="">
+      <div class="fg fg1" style="gap:10px">
+        <div class="fld"><label>工程名稱 *</label><input type="text" id="proj-form-name" placeholder="例：宏碩系統廠房增建工程"></div>
+        <div class="fld"><label>派任單號 *</label><input type="text" id="proj-form-order" placeholder="例：I03201"></div>
+      </div>
+      <div class="fg" style="margin-top:10px">
+        <div class="fld"><label>開工日期</label><input type="date" id="proj-form-start"></div>
+        <div class="fld"><label>完工日期</label><input type="date" id="proj-form-end"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="saveProject()" style="background:var(--pri);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:700;flex:1;cursor:pointer">✅ 儲存</button>
+        <button onclick="cancelProjectForm()" style="background:var(--g200);color:var(--g700);border:none;padding:10px;border-radius:8px;font-weight:700;flex:1;cursor:pointer">取消</button>
+      </div>
+    </div>
+
+    <!-- 人員名單設定 -->
+    <div class="admin-section">
+      <div class="admin-section-hd" style="display:flex;justify-content:space-between;align-items:center">
+        <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> 人員名單設定</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" id="new-staff-name" placeholder="輸入姓名" style="width:110px;padding:5px 8px;border-radius:6px;border:1px solid #555;font-size:12px;color:#fff;background:rgba(255,255,255,.15)">
+          <button onclick="addStaff()" style="background:#10b981;color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">＋ 新增</button>
+        </div>
+      </div>
+      <div id="admin-staff-list"><div class="proj-empty">尚無人員</div></div>
+    </div>
+
+    <!-- 部門設定 -->
+    <div class="admin-section">
+      <div class="admin-section-hd" style="display:flex;justify-content:space-between;align-items:center">
+        <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 部門設定</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" id="new-dept-name" placeholder="輸入部門名稱" style="width:110px;padding:5px 8px;border-radius:6px;border:1px solid #555;font-size:12px;color:#fff;background:rgba(255,255,255,.15)">
+          <button onclick="addDept()" style="background:#10b981;color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">＋ 新增</button>
+        </div>
+      </div>
+      <div id="admin-dept-list"><div class="proj-empty">尚無部門</div></div>
+    </div>
+
+    <!-- 匯出/匯入 -->
+    <div class="admin-section">
+      <div class="admin-section-hd"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> 分享設定給其他使用者</div>
+      <div style="padding:14px">
+        <p style="font-size:12px;color:var(--g600);margin-bottom:10px">產生設定碼後，複製傳給其他使用者，他們在管理頁貼上即可同步所有工程設定</p>
+        <button onclick="exportProjects()" style="background:#1d6f42;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;width:100%;cursor:pointer;font-size:13px">📋 產生設定碼（供分享）</button>
+        <div id="export-area" style="display:none;margin-top:10px">
+          <label style="font-size:11px;font-weight:600;color:var(--g600)">設定碼（複製後傳給其他人）</label>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <input type="text" id="export-code" readonly style="flex:1;font-size:11px;background:var(--g100)">
+            <button onclick="copyExportCode()" style="background:var(--pri);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap">複製</button>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--g200);margin-top:14px;padding-top:14px">
+          <label style="font-size:11px;font-weight:600;color:var(--g600)">貼上設定碼（從管理員取得）</label>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <input type="text" id="import-code" placeholder="貼上設定碼..." style="flex:1;font-size:11px">
+            <button onclick="importProjects()" style="background:#f59e0b;color:#1f2937;border:none;padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap">匯入</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 修改密碼 -->
+    <div class="admin-section">
+      <div class="admin-section-hd"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 修改管理員密碼</div>
+      <div style="padding:14px">
+        <div class="fg">
+          <div class="fld"><label>舊密碼</label><input type="password" id="old-pin" placeholder="舊密碼" maxlength="8"></div>
+          <div class="fld"><label>新密碼（至少4位）</label><input type="password" id="new-pin" placeholder="新密碼" maxlength="8"></div>
+        </div>
+        <button onclick="changeAdminPin()" style="background:var(--g800);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:700;width:100%;margin-top:10px;cursor:pointer">更新密碼</button>
+      </div>
+    </div>
+
+    <button onclick="adminLock()" style="background:var(--g200);color:var(--g700);border:none;padding:11px;border-radius:10px;font-weight:700;width:100%;cursor:pointer;margin-bottom:14px">🔒 登出管理員</button>
+  </div>
+</div>
+
+<div class="sb"></div>
+</div>
+<div class="botbar" style="gap:8px;">
+  <button class="bsave" onclick="saveLocal()" style="flex:1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2M17 21v-8H7v8M7 3v5h8"/></svg> 存檔</button>
+  <button class="bsave" onclick="showDraftModal()" style="flex:1.2;background:var(--pri);color:#fff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> 草稿</button>
+  <button class="bpdf" onclick="doPDF()" style="flex:1.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> 輸出PDF</button>
+</div>
+<div id="draft-modal">
+  <div class="draft-top">
+    <h2><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> 草稿記錄</h2>
+    <button onclick="closeDraftModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 14px;border-radius:8px;font-weight:700;cursor:pointer">&#x2715; &#x95DC;&#x9589;</button>
+  </div>
+  <div style="padding:14px">
+    <button onclick="startNewReport()" style="width:100%;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:13px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:14px;line-height:1.6;text-align:left">
+      &#x1F195; &#x4ECA;&#x65E5;&#x65B0;&#x65E5;&#x5831;<br><small style="font-weight:400;opacity:.85">&#x4FDD;&#x7559;&#x5DE5;&#x7A0B;/&#x7C3D;&#x540D;&#x8A2D;&#x5B9A;&#xFF0C;&#x6E05;&#x7A7A;&#x5DE5;&#x4F5C;&#x4EBA;&#x54E1;/&#x6750;&#x6599;/&#x6A5F;&#x5177;/&#x7167;&#x7247;&#xFF0C;&#x65E5;&#x671F;&#x8A2D;&#x70BA;&#x4ECA;&#x5929;</small>
+    </button>
+    <div style="font-size:12px;font-weight:600;color:#9ca3af;text-align:center;margin-bottom:10px">&#x2500;&#x2500; &#x5DF2;&#x5132;&#x5B58;&#x8349;&#x7A3F;&#xFF08;&#x6D3E;&#x4EFB;&#x55AE;&#x865F;+&#x65E5;&#x671F;&#xFF09; &#x2500;&#x2500;</div>
+    <div id="draft-list" style="border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08)"><div class="proj-empty">&#x5C1A;&#x7121;&#x8349;&#x7A3F;</div></div>
+  </div>
+</div>
+
+<!-- 預覽模態框 -->
+<div id="pvmod">
+  <div class="pvtop">
+    <h2><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 日報預覽</h2>
+    <div class="pvtop-btns">
+      <button class="pvbtn close" onclick="closePv()">✕ 關閉</button>
+      <button class="pvbtn go" onclick="closePv();doPDF()">📄 確認輸出PDF</button>
+    </div>
+  </div>
+  <div class="pv-body" id="pv-content"></div>
+</div>
+<div id="toast"></div>
+<script>
+/* ════════════════════════════════════════════════════
+   IndexedDB — 照片 & 附件大容量儲存
+   文字草稿繼續用 localStorage；照片/附件改用 IDB
+════════════════════════════════════════════════════ */
+var _idb=null;
+var IDB_NAME='cr-media-store';
+var IDB_VER=1;
+var IDB_PHOTO='photos';
+var IDB_ATT='attachments';
+
+function openIDB(){
+  return new Promise(function(resolve,reject){
+    if(_idb){resolve(_idb);return;}
+    var req=indexedDB.open(IDB_NAME,IDB_VER);
+    req.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains(IDB_PHOTO))
+        db.createObjectStore(IDB_PHOTO,{keyPath:'draftKey'});
+      if(!db.objectStoreNames.contains(IDB_ATT))
+        db.createObjectStore(IDB_ATT,{keyPath:'draftKey'});
+    };
+    req.onsuccess=function(e){_idb=e.target.result;resolve(_idb);};
+    req.onerror=function(e){console.error('IDB open error',e);reject(e);};
+  });
+}
+
+function idbPut(store,data){
+  return openIDB().then(function(db){
+    return new Promise(function(resolve,reject){
+      var tx=db.transaction(store,'readwrite');
+      tx.objectStore(store).put(data);
+      tx.oncomplete=resolve;
+      tx.onerror=reject;
+    });
+  });
+}
+
+function idbGet(store,key){
+  return openIDB().then(function(db){
+    return new Promise(function(resolve,reject){
+      var tx=db.transaction(store,'readonly');
+      var req=tx.objectStore(store).get(key);
+      req.onsuccess=function(){resolve(req.result);};
+      req.onerror=reject;
+    });
+  });
+}
+
+function idbDelete(store,key){
+  return openIDB().then(function(db){
+    return new Promise(function(resolve,reject){
+      var tx=db.transaction(store,'readwrite');
+      tx.objectStore(store).delete(key);
+      tx.oncomplete=resolve;
+      tx.onerror=reject;
+    });
+  });
+}
+
+/* 儲存照片到 IDB */
+function savePhotosToIDB(draftKey){
+  var data={
+    draftKey:draftKey,
+    photos:photos.map(function(p){return{src:p.src,cap:p.cap};})
+  };
+  return idbPut(IDB_PHOTO,data);
+}
+
+/* 儲存附件到 IDB */
+function saveAttachmentsToIDB(draftKey){
+  var data={
+    draftKey:draftKey,
+    attachments:attachments.map(function(a){return{name:a.name,type:a.type,pages:a.pages,cap:a.cap};})
+  };
+  return idbPut(IDB_ATT,data);
+}
+
+/* 從 IDB 讀取照片 */
+function loadPhotosFromIDB(draftKey){
+  return idbGet(IDB_PHOTO,draftKey).then(function(rec){
+    if(rec&&rec.photos&&rec.photos.length){
+      photos=rec.photos.map(function(p){return{src:p.src||null,cap:p.cap||''};});
+    } else {
+      if(!photos.length){photos=[{src:null,cap:''},{src:null,cap:''}];}
+    }
+    renderPh();
+  });
+}
+
+/* 從 IDB 讀取附件 */
+function loadAttachmentsFromIDB(draftKey){
+  return idbGet(IDB_ATT,draftKey).then(function(rec){
+    if(rec&&rec.attachments&&rec.attachments.length){
+      attachments=rec.attachments.map(function(a){return{name:a.name,type:a.type,pages:a.pages||[],cap:a.cap||''};});
+    } else {
+      attachments=[];
+    }
+    renderAtt();
+  });
+}
+
+/* 刪除草稿同時清除 IDB 媒體 */
+function deleteMediaFromIDB(draftKey){
+  idbDelete(IDB_PHOTO,draftKey);
+  idbDelete(IDB_ATT,draftKey);
+}
+
+var workers=[], mats=[], equips=[], photos=[], attachments=[];
+/* PDF.js worker 初始化 */
+if(typeof pdfjsLib!=='undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+window.onload=function(){
+  loadProjects();
+  loadStaff();
+  loadDepts();
+  loadLastDraft();
+  /* 永遠用今日作為報告日期，剩餘天數自動更新 */
+  document.getElementById('rdate').value=new Date().toISOString().split('T')[0];
+  if(!workers.length)addW({prog:'正常',type:'工程管理',item:'工程管理',vendor:'翔天',am:'1',pm:'1',tin:'0800',tout:'1700',cnt:'工程管理'});
+  if(!mats.length)addM();
+  if(!equips.length)addE();
+  if(!photos.length){addPh();addPh();}
+  renderAtt();
+  calcD();updStats();
+  /* 初始化：填表預設帶入填寫人 */
+  var repEl=document.getElementById('rep');
+  var sfilEl2=document.getElementById('sfil');
+  if(repEl&&sfilEl2&&!sfilEl2.value&&repEl.value){
+    sfilEl2.value=repEl.value;
+    sfilEl2.dataset.prevRep=repEl.value;
+  }
+};
+
+function swTab(i,btn){
+  document.querySelectorAll('.sec').forEach(function(s,j){s.classList.toggle('active',j===i);});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');updStats();
+}
+function selW(t,val,el,cls){
+  document.getElementById('w'+t+'g').querySelectorAll('.chip').forEach(function(c){c.className='chip';});
+  el.classList.add(cls);document.getElementById('w'+t).value=val;
+}
+function selP(val,el,cls){
+  document.querySelectorAll('.chip.s-ok,.chip.s-bh,.chip.s-ah').forEach(function(c){c.className='chip';});
+  el.classList.add(cls);document.getElementById('prog').value=val;
+}
+function calcD(){
+  var r=document.getElementById('rdate').value;
+  var e=document.getElementById('edate').value;
+  if(r&&e){
+    /* 用本地時間解析，避免 UTC 時區造成 ±1 天偏差 */
+    var rp=r.split('-'), ep=e.split('-');
+    var rD=new Date(+rp[0], +rp[1]-1, +rp[2]);
+    var eD=new Date(+ep[0], +ep[1]-1, +ep[2]);
+    var d=Math.round((eD-rD)/864e5);
+    document.getElementById('rem').value=d>=0?d:0;
+  }
+}
+function v(id){return(document.getElementById(id)||{}).value||'';}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ── Workers ── */
+function addW(d){
+  if(workers.length>=14){showToast('最多14筆工程項目');return;}
+  workers.push(d||{prog:'',type:'',item:'',vendor:'',am:'',pm:'',tin:'0800',tout:'1700',cnt:''});
+  renderW();
+}
+function renderW(){
+  var b=document.getElementById('wb'); b.innerHTML='';
+  workers.forEach(function(w,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="nc">'+(i+1)+'</td>'+
+      '<td><select style="width:50px" onchange="workers['+i+'].prog=this.value">'+
+        '<option value=""'+(w.prog?'':' selected')+'>-</option>'+
+        '<option value="正常"'+(w.prog==='正常'?' selected':'')+'>正常</option>'+
+        '<option value="落後"'+(w.prog==='落後'?' selected':'')+'>落後</option>'+
+        '<option value="超前"'+(w.prog==='超前'?' selected':'')+'>超前</option>'+
+      '</select></td>'+
+      '<td><input value="'+esc(w.type)+'" oninput="workers['+i+'].type=this.value" placeholder="種類" style="min-width:72px"></td>'+
+      '<td><input value="'+esc(w.item)+'" oninput="workers['+i+'].item=this.value" placeholder="項目" style="min-width:78px"></td>'+
+      '<td><input value="'+esc(w.vendor)+'" oninput="workers['+i+'].vendor=this.value" placeholder="廠商" style="width:48px"></td>'+
+      '<td><input type="text" value="'+(w.am||'')+'" oninput="workers['+i+'].am=this.value;updStats()" style="width:38px;text-align:center" placeholder="0"></td>'+
+      '<td><input type="text" value="'+(w.pm||'')+'" oninput="workers['+i+'].pm=this.value" style="width:38px;text-align:center" placeholder="0"></td>'+
+      '<td><input type="text" value="'+(w.tin||'')+'" oninput="workers['+i+'].tin=this.value" style="width:51px;text-align:center" placeholder="0800"></td>'+
+      '<td><input type="text" value="'+(w.tout||'')+'" oninput="workers['+i+'].tout=this.value" style="width:51px;text-align:center" placeholder="1700"></td>'+
+      '<td><input value="'+esc(w.cnt)+'" oninput="workers['+i+'].cnt=this.value" placeholder="施作內容" style="min-width:108px"></td>'+
+      '<td class="dc"><button class="dbtn" onclick="delR(\'w\','+i+')">✕</button></td>';
+    b.appendChild(tr);
+  });
+  document.getElementById('addwbtn').style.display=workers.length>=14?'none':'flex';
+  updStats();
+}
+
+/* ── Materials ── */
+function addM(d){
+  if(mats.length>=10){showToast('最多10筆材料');return;}
+  mats.push(d||{name:'',spec:'',today:'',total:'',unit:'',note:''});renderM();
+}
+function renderM(){
+  var b=document.getElementById('mb'); b.innerHTML='';
+  mats.forEach(function(m,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="nc">'+(i+1)+'</td>'+
+      '<td><input value="'+esc(m.name)+'" oninput="mats['+i+'].name=this.value" placeholder="材料名稱"></td>'+
+      '<td><input value="'+esc(m.spec)+'" oninput="mats['+i+'].spec=this.value" placeholder="規格"></td>'+
+      '<td><input type="text" value="'+(m.today||'')+'" oninput="mats['+i+'].today=this.value;debounceCumulatives()" style="text-align:center" placeholder="0"></td>'+
+      '<td style="position:relative"><input type="text" value="'+(m.total||'')+'" oninput="mats['+i+'].total=this.value" style="text-align:center;background:#f0f6fc;color:#2a5080;font-weight:600" placeholder="自動"><div title="可手動覆蓋，或點〔計算累計〕自動計算" style="position:absolute;top:2px;right:3px;font-size:8px;color:#94a3b8;pointer-events:none">∑</div></td>'+
+      '<td><input value="'+esc(m.unit)+'" oninput="mats['+i+'].unit=this.value" placeholder="單位" style="width:40px"></td>'+
+      '<td><input value="'+esc(m.note)+'" oninput="mats['+i+'].note=this.value" placeholder="備註"></td>'+
+      '<td class="dc"><button class="dbtn" onclick="delR(\'m\','+i+')">✕</button></td>';
+    b.appendChild(tr);
+  });
+  document.getElementById('addmbtn').style.display=mats.length>=10?'none':'flex';
+  updStats();
+}
+
+/* ── Equipment ── */
+function addE(d){
+  if(equips.length>=10){showToast('最多10筆機具');return;}
+  equips.push(d||{name:'',vendor:'',am:'',pm:'',cnt:''});renderE();
+}
+function renderE(){
+  var b=document.getElementById('eb'); b.innerHTML='';
+  equips.forEach(function(e,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="nc">'+(i+1)+'</td>'+
+      '<td><input value="'+esc(e.name)+'" oninput="equips['+i+'].name=this.value" placeholder="機具名稱"></td>'+
+      '<td><input value="'+esc(e.vendor)+'" oninput="equips['+i+'].vendor=this.value" placeholder="廠商"></td>'+
+      '<td><input type="text" value="'+(e.am||'')+'" oninput="equips['+i+'].am=this.value" style="width:38px;text-align:center" placeholder="0"></td>'+
+      '<td><input type="text" value="'+(e.pm||'')+'" oninput="equips['+i+'].pm=this.value" style="width:38px;text-align:center" placeholder="0"></td>'+
+      '<td><input value="'+esc(e.cnt)+'" oninput="equips['+i+'].cnt=this.value" placeholder="工作內容" style="min-width:108px"></td>'+
+      '<td class="dc"><button class="dbtn" onclick="delR(\'e\','+i+')">✕</button></td>';
+    b.appendChild(tr);
+  });
+  document.getElementById('addebtn').style.display=equips.length>=10?'none':'flex';
+}
+function delR(t,i){
+  if(t==='w'){workers.splice(i,1);renderW();}
+  else if(t==='m'){mats.splice(i,1);renderM();}
+  else{equips.splice(i,1);renderE();}
+}
+
+/* ── Photos ── */
+function addPh(d){photos.push(d||{src:null,cap:''});renderPh();}
+function renderPh(){
+  var g=document.getElementById('pgrid'); g.innerHTML='';
+  photos.forEach(function(p,i){
+    var div=document.createElement('div');
+    div.className='pslot'+(p.src?' hi':'');
+    div.innerHTML=
+      '<input type="file" accept="image/*" id="pf'+i+'" onchange="upPh('+i+',this)">'+
+      (p.src
+        ?'<div class="pimgw"><img src="'+p.src+'"></div>'+
+          '<div class="pcap"><input type="text" value="'+esc(p.cap)+'" placeholder="照片說明文字..." oninput="photos['+i+'].cap=this.value"></div>'+
+          '<button class="prmb" onclick="rmPh('+i+',event)">✕</button>'
+        :'<div class="pph"><div class="ico">📷</div><div>點擊上傳照片</div></div>'
+      );
+    div.addEventListener('click',function(ev){
+      if(!ev.target.closest('button')&&!ev.target.closest('input[type=text]')&&!ev.target.closest('input[type=file]'))
+        document.getElementById('pf'+i).click();
+    });
+    g.appendChild(div);
+  });
+  updStats();
+}
+function upPh(i,inp){
+  if(!inp.files||!inp.files[0])return;
+  var r=new FileReader();
+  r.onload=function(e){photos[i].src=e.target.result;renderPh();};
+  r.readAsDataURL(inp.files[0]);
+}
+function rmPh(i,ev){ev.stopPropagation();photos[i].src=null;photos[i].cap='';renderPh();}
+
+function updStats(){
+  var tw=workers.reduce(function(s,w){return s+(parseFloat(w.am)||0);},0);
+  document.getElementById('sw').textContent=tw%1===0?tw:tw.toFixed(1);
+  document.getElementById('si2').textContent=workers.filter(function(w){return w.type||w.item;}).length;
+  document.getElementById('sm').textContent=mats.filter(function(m){return m.name;}).length;
+  document.getElementById('sp').textContent=photos.filter(function(p){return p.src;}).length;
+}
+
+/* ════════════════════════════════════════════════════
+   材料累計計算 (Cumulative Calculation)
+════════════════════════════════════════════════════ */
+var _cumDebounce=null;
+function debounceCumulatives(){
+  clearTimeout(_cumDebounce);
+  _cumDebounce=setTimeout(calcAllCumulatives,400);
+}
+
+function calcAllCumulatives(){
+  /* 如已登入且在群組中，改用雲端計算（更準確）*/
+  if(_currentUser&&_userGroup&&v('ono')){calcCumulativesCloud();return;}
+  var curOno=v('ono');
+  var curDate=v('rdate');
+  if(!mats.length)return;
+  if(!curOno){
+    /* 無派任單號：累計=今日進料 */
+    mats.forEach(function(m){m.total=(parseFloat(m.today)||0)||'';});
+    renderMNoCalc();
+    return;
+  }
+  /* 取所有該派任單號、日期早於今日的草稿 */
+  var idx=JSON.parse(localStorage.getItem('cr-d-index')||'[]');
+  var prevDrafts=idx.filter(function(e){
+    return e.ono===curOno && e.date<curDate;
+  });
+  /* 建立累計 Map: "名稱|規格" → 歷史進料合計 */
+  var cumMap={};
+  prevDrafts.forEach(function(e){
+    var raw=localStorage.getItem(e.key);
+    if(!raw)return;
+    try{
+      var d=JSON.parse(raw);
+      if(d.mats)d.mats.forEach(function(m){
+        if(!m.name)return;
+        var k=(m.name||'')+'|'+(m.spec||'');
+        cumMap[k]=(cumMap[k]||0)+(parseFloat(m.today)||0);
+      });
+    }catch(err){}
+  });
+  /* 更新每列的累計 */
+  mats.forEach(function(m){
+    if(!m.name){m.total='';return;}
+    var k=(m.name||'')+'|'+(m.spec||'');
+    var hist=cumMap[k]||0;
+    var today=parseFloat(m.today)||0;
+    var total=hist+today;
+    m.total=total>0?total:'';
+  });
+  renderMNoCalc();
+  showToast('✅ 累計已更新');
+}
+
+/* renderM 但不觸發 calcAllCumulatives，避免無限迴圈 */
+function renderMNoCalc(){
+  var b=document.getElementById('mb');if(!b)return;b.innerHTML='';
+  mats.forEach(function(m,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="nc">'+(i+1)+'</td>'+
+      '<td><input value="'+esc(m.name)+'" oninput="mats['+i+'].name=this.value" placeholder="材料名稱"></td>'+
+      '<td><input value="'+esc(m.spec)+'" oninput="mats['+i+'].spec=this.value" placeholder="規格"></td>'+
+      '<td><input type="text" value="'+(m.today||'')+'" oninput="mats['+i+'].today=this.value;debounceCumulatives()" style="text-align:center" placeholder="0"></td>'+
+      '<td style="position:relative"><input type="text" value="'+(m.total||'')+'" oninput="mats['+i+'].total=this.value" style="text-align:center;background:#f0f6fc;color:#2a5080;font-weight:600" placeholder="自動"><div title="可手動覆蓋，或點〔計算累計〕自動計算" style="position:absolute;top:2px;right:3px;font-size:8px;color:#94a3b8;pointer-events:none">∑</div></td>'+
+      '<td><input value="'+esc(m.unit)+'" oninput="mats['+i+'].unit=this.value" placeholder="單位" style="width:40px"></td>'+
+      '<td><input value="'+esc(m.note)+'" oninput="mats['+i+'].note=this.value" placeholder="備註"></td>'+
+      '<td class="dc"><button class="dbtn" onclick="delR(\'m\','+i+')">\u2715</button></td>';
+    b.appendChild(tr);
+  });
+  document.getElementById('addmbtn').style.display=mats.length>=10?'none':'flex';
+  updStats();
+}
+
+/* ════════════════════════════════════════════════════
+   累計統計報表 Modal (Project Stats)
+════════════════════════════════════════════════════ */
+function showProjectStats(){
+  var curOno=v('ono');
+  var curProj=v('proj');
+  if(!curOno){showToast('請先選擇工程或填入派任單號');return;}
+
+  var idx=JSON.parse(localStorage.getItem('cr-d-index')||'[]');
+  var allDrafts=idx.filter(function(e){return e.ono===curOno;});
+  if(!allDrafts.length){showToast('尚無此派任單號的草稿記錄');return;}
+
+  /* 彙整資料 */
+  var matMap={};   /* "名稱|規格" → {name,spec,unit,total} */
+  var workerMap={}; /* "廠商|項目" → {vendor,item,totalAM,totalPM,days} */
+  var equipMap={}; /* "名具" → {name,vendor,totalAM,totalPM} */
+  var dates=[];
+
+  allDrafts.forEach(function(e){
+    dates.push(e.date);
+    var raw=localStorage.getItem(e.key);
+    if(!raw)return;
+    try{
+      var d=JSON.parse(raw);
+      /* 材料 */
+      if(d.mats)d.mats.forEach(function(m){
+        if(!m.name)return;
+        var k=(m.name||'')+'|'+(m.spec||'');
+        if(!matMap[k])matMap[k]={name:m.name,spec:m.spec||'',unit:m.unit||'',total:0};
+        matMap[k].total+=(parseFloat(m.today)||0);
+        if(m.unit)matMap[k].unit=m.unit;
+      });
+      /* 工作人員 */
+      if(d.workers)d.workers.forEach(function(w){
+        if(!w.vendor&&!w.item)return;
+        var k=(w.vendor||'')+'|'+(w.item||'');
+        if(!workerMap[k])workerMap[k]={vendor:w.vendor||'',item:w.item||'',totalAM:0,totalPM:0,days:0};
+        var am=parseFloat(w.am)||0,pm=parseFloat(w.pm)||0;
+        workerMap[k].totalAM+=am;
+        workerMap[k].totalPM+=pm;
+        if(am>0||pm>0)workerMap[k].days++;
+      });
+      /* 機具 */
+      if(d.equips)d.equips.forEach(function(e2){
+        if(!e2.name)return;
+        var k=(e2.name||'')+'|'+(e2.vendor||'');
+        if(!equipMap[k])equipMap[k]={name:e2.name,vendor:e2.vendor||'',totalAM:0,totalPM:0};
+        equipMap[k].totalAM+=(parseFloat(e2.am)||0);
+        equipMap[k].totalPM+=(parseFloat(e2.pm)||0);
+      });
+    }catch(err){}
+  });
+
+  dates.sort();
+  var dateRange=dates.length?fmtDate(dates[0])+' ~ '+fmtDate(dates[dates.length-1]):'無資料';
+
+  /* 建立 HTML */
+  function th(txt,right){return '<th style="padding:8px 6px;border:1px solid #dde5f0;background:#eef4fb;font-size:11px;font-weight:700;color:#2a5080;white-space:nowrap;text-align:'+(right?'right':'left')+'">'+txt+'</th>';}
+  function td(txt,right,bold){return '<td style="padding:6px 6px;border:1px solid #eef2f8;font-size:12px;text-align:'+(right?'right':'left')+';'+(bold?'font-weight:700;color:#2a5080;':'')+' white-space:nowrap">'+txt+'</td>';}
+
+  var matRows='';
+  var matArr=Object.values(matMap).filter(function(m){return m.total>0;});
+  matArr.sort(function(a,b){return b.total-a.total;});
+  matArr.forEach(function(m,i){
+    matRows+='<tr style="background:'+(i%2===0?'#fff':'#f8fbfe')+'">'
+      +td(esc(m.name))+td(esc(m.spec))+td(m.total,true,true)+td(esc(m.unit))+'</tr>';
+  });
+
+  var workerRows='';
+  var workerArr=Object.values(workerMap);
+  workerArr.sort(function(a,b){return b.totalAM-a.totalAM;});
+  var totalAMAll=0,totalPMAll=0;
+  workerArr.forEach(function(w,i){
+    totalAMAll+=w.totalAM;totalPMAll+=w.totalPM;
+    workerRows+='<tr style="background:'+(i%2===0?'#fff':'#f8fbfe')+'">'
+      +td(esc(w.vendor))+td(esc(w.item))+td(w.totalAM.toFixed(1),true,true)+td(w.totalPM.toFixed(1),true,true)+td(w.days,true)+'</tr>';
+  });
+  if(workerArr.length){
+    workerRows+='<tr style="background:#e8f2ff;font-weight:700">'
+      +td('合計','',true)+td('')+td(totalAMAll.toFixed(1),true,true)+td(totalPMAll.toFixed(1),true,true)+td('')+'</tr>';
+  }
+
+  var equipRows='';
+  Object.values(equipMap).filter(function(e2){return e2.totalAM>0||e2.totalPM>0;}).forEach(function(e2,i){
+    equipRows+='<tr style="background:'+(i%2===0?'#fff':'#f8fbfe')+'">'
+      +td(esc(e2.name))+td(esc(e2.vendor))+td(e2.totalAM.toFixed(1),true)+td(e2.totalPM.toFixed(1),true)+'</tr>';
+  });
+
+  var modal=document.getElementById('stats-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='stats-modal';
+    modal.style.cssText='display:none;position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,.75);overflow-y:auto;-webkit-overflow-scrolling:touch;';
+    modal.onclick=function(ev){if(ev.target===modal)modal.style.display='none';};
+    document.body.appendChild(modal);
+  }
+
+  var secHd=function(icon,title){
+    return '<div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#3d5a80;margin:16px 0 8px;padding-bottom:6px;border-bottom:2px solid #d0e4f2">'+icon+' '+title+'</div>';
+  };
+
+  modal.innerHTML=
+    '<div style="background:#fff;max-width:700px;margin:20px auto 40px;border-radius:12px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.3)">'+
+      '<div style="background:linear-gradient(135deg,#3d5a80,#2a4060);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">'+
+        '<div>'+
+          '<div style="font-size:15px;font-weight:800;letter-spacing:.5px">📊 累計統計報表</div>'+
+          '<div style="font-size:11px;opacity:.8;margin-top:3px">'+esc(curProj||curOno)+' | 派任單號: <b>'+esc(curOno)+'</b></div>'+
+          '<div style="font-size:11px;opacity:.75;margin-top:1px">📅 '+dateRange+' ｜ 共 <b>'+allDrafts.length+'</b> 天記錄</div>'+
+        '</div>'+
+        '<button onclick="document.getElementById(\'stats-modal\').style.display=\'none\'" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕ 關閉</button>'+
+      '</div>'+
+      '<div style="padding:16px">'+
+        secHd('📦','材料累計進場')+
+        '<div style="overflow-x:auto">'+
+        '<table style="width:100%;border-collapse:collapse">'+
+          '<thead><tr>'+th('材料名稱')+th('規格')+th('累計數量',true)+th('單位')+'</tr></thead>'+
+          '<tbody>'+(matRows||'<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">無材料紀錄</td></tr>')+'</tbody>'+
+        '</table></div>'+
+
+        secHd('👷','工作人員累計出工')+
+        '<div style="overflow-x:auto">'+
+        '<table style="width:100%;border-collapse:collapse">'+
+          '<thead><tr>'+th('廠商')+th('工程項目')+th('上午合計',true)+th('下午合計',true)+th('出工天數',true)+'</tr></thead>'+
+          '<tbody>'+(workerRows||'<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">無工作人員紀錄</td></tr>')+'</tbody>'+
+        '</table></div>'+
+
+        secHd('🔧','機具累計使用')+
+        '<div style="overflow-x:auto">'+
+        '<table style="width:100%;border-collapse:collapse">'+
+          '<thead><tr>'+th('機具名稱')+th('廠商')+th('上午合計',true)+th('下午合計',true)+'</tr></thead>'+
+          '<tbody>'+(equipRows||'<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">無機具紀錄</td></tr>')+'</tbody>'+
+        '</table></div>'+
+
+        '<div style="margin-top:16px;padding:12px;background:#f0f6fc;border-radius:8px;font-size:11px;color:#64748b;line-height:1.7">'+
+          '💡 <b>說明：</b>本統計僅計算已儲存草稿的資料。材料『累計數量』為各日『本日進料』加總。'+
+          '可回到材料頁點「🔄 計算累計」自動更新今日報表的累計欄位。'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  modal.style.display='block';
+}
+
+/* ════════════════════════════════════════════════════
+   附件管理 (Attachments)
+════════════════════════════════════════════════════ */
+function openAttPicker(){document.getElementById('att-file-inp').click();}
+
+async function handleAttFiles(inp){
+  if(!inp||!inp.files||!inp.files.length)return;
+  var ov=document.getElementById('att-proc-ov');
+  if(!ov){ov=document.createElement('div');ov.id='att-proc-ov';
+    ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(8,30,42,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;';
+    ov.innerHTML='<div style="width:44px;height:44px;border:4px solid rgba(255,255,255,.2);border-top-color:#4a6fa5;border-radius:50%;animation:spin 1s linear infinite"></div>'+
+      '<div style="color:#fff;font-size:14px;font-weight:700">正在處理附件...</div>';
+    document.body.appendChild(ov);
+  }
+  for(var i=0;i<inp.files.length;i++){try{await processAttFile(inp.files[i]);}catch(e){showToast('❌ 無法處理: '+inp.files[i].name);}}
+  inp.value='';
+  var o=document.getElementById('att-proc-ov');if(o)o.remove();
+  renderAtt();
+  showToast('✅ 附件已新增');
+}
+
+function processAttFile(file){
+  return new Promise(function(resolve,reject){
+    var isPDF=file.type==='application/pdf';
+    var isImg=file.type.startsWith('image/');
+    if(!isPDF&&!isImg){reject(new Error('不支援的格式'));return;}
+    if(isPDF){
+      if(typeof pdfjsLib==='undefined'){reject(new Error('PDF.js 未載入'));return;}
+      var fr=new FileReader();
+      fr.onload=async function(e){
+        try{
+          var pdf=await pdfjsLib.getDocument({data:e.target.result}).promise;
+          var pages=[];
+          for(var p=1;p<=pdf.numPages;p++){
+            var pg=await pdf.getPage(p);
+            var vp=pg.getViewport({scale:2.0});
+            var cv=document.createElement('canvas');
+            cv.width=vp.width;cv.height=vp.height;
+            await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+            pages.push(cv.toDataURL('image/jpeg',0.82));
+          }
+          attachments.push({name:file.name,type:'pdf',pages:pages,cap:file.name.replace(/\.pdf$/i,'')});
+          resolve();
+        }catch(err){reject(err);}
+      };
+      fr.onerror=reject;
+      fr.readAsArrayBuffer(file);
+    } else {
+      var fr2=new FileReader();
+      fr2.onload=function(e){
+        attachments.push({name:file.name,type:'image',pages:[e.target.result],cap:file.name.replace(/\.[^.]+$/,'')});
+        resolve();
+      };
+      fr2.onerror=reject;
+      fr2.readAsDataURL(file);
+    }
+  });
+}
+
+function renderAtt(){
+  var el=document.getElementById('att-list');if(!el)return;
+  if(!attachments.length){
+    el.innerHTML='<div style="text-align:center;color:var(--g400);padding:24px;font-size:13px">尚未上傳附件</div>';
+    return;
+  }
+  var html='<div style="border-radius:var(--r);overflow:hidden;background:#fff;box-shadow:var(--sh);margin-bottom:10px;">';
+  attachments.forEach(function(a,i){
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--g200);">'+
+      '<div style="width:48px;height:48px;border-radius:6px;overflow:hidden;flex-shrink:0;background:#f0f4f8;border:1px solid #dde5f0;">'+
+        '<img src="'+a.pages[0]+'" style="width:100%;height:100%;object-fit:cover;">'+
+      '</div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:13px;font-weight:600;color:var(--g700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escP(a.name)+'</div>'+
+        '<div style="font-size:11px;color:var(--g400);margin-top:1px">'+a.pages.length+' 頁</div>'+
+        '<input type="text" value="'+esc(a.cap)+'" placeholder="附件說明..." oninput="attachments['+i+'].cap=this.value" style="margin-top:5px;font-size:12px;width:100%;">'+
+      '</div>'+
+      '<button onclick="rmAtt('+i+')" style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0">✕</button>'+
+    '</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function rmAtt(i){attachments.splice(i,1);renderAtt();}
+
+/* ── Save / Load ── */
+function saveLocal(){
+  var ono=v('ono')||'';
+  var date=v('rdate')||new Date().toISOString().split('T')[0];
+  var key='cr-d-'+(ono||'draft')+'-'+date;
+  /* 文字資料存 localStorage（不含照片/附件） */
+  var d={co:v('co'),proj:v('proj'),sdate:v('sdate'),edate:v('edate'),rem:v('rem'),
+    rep:v('rep'),rdate:date,ono:ono,prog:v('prog'),wam:v('wam'),wpm:v('wpm'),
+    abn:v('abn'),imp:v('imp'),sc:v('sc'),smgr:v('smgr'),srev:v('srev'),sfil:v('sfil'),
+    workers:workers,mats:mats,equips:equips,
+    hasPhotos:photos.filter(function(p){return p.src;}).length,
+    hasAttachments:attachments.length};
+  try{
+    localStorage.setItem(key,JSON.stringify(d));
+    var idx=JSON.parse(localStorage.getItem('cr-d-index')||'[]');
+    idx=idx.filter(function(e){return e.key!==key;});
+    idx.unshift({key:key,ono:ono||'(\u7121\u55ae\u865f)',proj:v('proj')||'',date:date,savedAt:new Date().toISOString()});
+    if(idx.length>100)idx=idx.slice(0,100);
+    localStorage.setItem('cr-d-index',JSON.stringify(idx));
+    localStorage.setItem('cr-d-last',key);
+    _curOno=ono;_curDate=date;
+    updateDraftBanner();
+    /* 照片/附件非同步存 IndexedDB */
+    Promise.all([savePhotosToIDB(key),saveAttachmentsToIDB(key)])
+      .then(function(){showToast('\u2705 \u5df2\u5132\u5b58'+(ono?' '+ono:'')+' '+fmtDate(date)+'\uff08\u542b\u7167\u7247/\u9644\u4ef6\uff09');})
+      .catch(function(){showToast('\u2705 \u6587\u5b57\u5df2\u5132\u5b58\uff0c\u7167\u7247\u5132\u5b58\u5931\u6557');});
+    /* 同步文字資料到 Firebase Firestore */
+    syncToCloud(key,d);
+  }catch(err){showToast('\u274c \u5132\u5b58\u5931\u6557: '+err.message);}
+}
+
+function loadLocal(){
+  var raw=localStorage.getItem('cr7');if(!raw)return;
+  try{
+    var d=JSON.parse(raw);
+    ['co','proj','sdate','edate','rep','rdate','ono','abn','imp','sc','smgr','srev','sfil'].forEach(function(id){
+      var el=document.getElementById(id);if(el&&d[id])el.value=d[id];
+    });
+    if(d.co)document.getElementById('dco').textContent=d.co;
+    if(d.prog){document.getElementById('prog').value=d.prog;}
+    ['am','pm'].forEach(function(t){
+      var wval=t==='am'?d.wam:d.wpm;if(!wval)return;
+      document.getElementById('w'+t).value=wval;
+      var pm2={'晴':'s-sun','陰':'s-cld','雨':'s-ran'};
+      document.getElementById('w'+t+'g').querySelectorAll('.chip').forEach(function(c){
+        if(c.textContent.indexOf(wval)>=0)c.className='chip '+(pm2[wval]||'');
+      });
+    });
+    if(d.workers&&d.workers.length){workers=d.workers;renderW();}
+    if(d.mats&&d.mats.length){mats=d.mats;renderM();}
+    if(d.equips&&d.equips.length){equips=d.equips;renderE();}
+    if(d.photos&&d.photos.length){photos=d.photos.map(function(p){return{src:p.src,cap:p.cap};});renderPh();}
+    /* 若填表為空，自動帶入填寫人 */
+    var repVal=document.getElementById('rep').value;
+    var sfilEl=document.getElementById('sfil');
+    if(repVal&&sfilEl&&!sfilEl.value){sfilEl.value=repVal;}
+    if(sfilEl)sfilEl.dataset.prevRep=repVal;
+    /* 同步所有下拉選單 */
+    syncProjectSelects();
+    syncAllNameSelects();
+  }catch(err){console.error(err);}
+}
+/* ════════════════════════════════════════════════════
+   工程管理 (Projects Admin)
+════════════════════════════════════════════════════ */
+var projects=[];
+var adminUnlocked=false;
+var ADMIN_PIN_KEY='cr-admin-pin';
+var PROJECTS_KEY='cr-projects';
+
+function loadProjects(){
+  var raw=localStorage.getItem(PROJECTS_KEY);
+  if(raw){try{projects=JSON.parse(raw);}catch(e){projects=[];}}
+  updateProjDropdowns();
+}
+
+function saveProjectsDB(){
+  localStorage.setItem(PROJECTS_KEY,JSON.stringify(projects));
+  updateProjDropdowns();
+}
+
+function updateProjDropdowns(){
+  var pSel=document.getElementById('proj-sel');
+  var oSel=document.getElementById('ono-sel');
+  if(!pSel||!oSel)return;
+  var ph='<option value="">\u2014 \u9078\u64c7\u5df2\u8a2d\u5b9a\u5de5\u7a0b \u2014</option>';
+  var oh='<option value="">\u2014 \u9078\u64c7\u5df2\u8a2d\u5b9a\u55ae\u865f \u2014</option>';
+  projects.forEach(function(p){
+    ph+='<option value="'+p.id+'">'+escP(p.name)+'</option>';
+    oh+='<option value="'+p.id+'">'+escP(p.orderNo)+'</option>';
+  });
+  pSel.innerHTML=ph;
+  oSel.innerHTML=oh;
+}
+
+function escP(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function onProjSelect(selId){
+  var sel=document.getElementById(selId);
+  var pid=sel.value;
+  if(!pid){return;}
+  var proj=null;
+  for(var i=0;i<projects.length;i++){if(projects[i].id===pid){proj=projects[i];break;}}
+  if(!proj)return;
+  /* 自動帶出所有欄位 */
+  document.getElementById('proj').value=proj.name;
+  document.getElementById('ono').value=proj.orderNo;
+  if(proj.startDate)document.getElementById('sdate').value=proj.startDate;
+  if(proj.endDate)document.getElementById('edate').value=proj.endDate;
+  /* 同步另一個下拉 */
+  var otherId=selId==='proj-sel'?'ono-sel':'proj-sel';
+  document.getElementById(otherId).value=pid;
+  calcD();
+  checkAndSwitchCombo();
+}
+
+function syncProjectSelects(){
+  /* 載入草稿後，把文字值對應回下拉選單 */
+  var projVal=document.getElementById('proj').value;
+  var pSel=document.getElementById('proj-sel');
+  var oSel=document.getElementById('ono-sel');
+  if(!pSel||!oSel||!projVal)return;
+  for(var i=0;i<projects.length;i++){
+    if(projects[i].name===projVal){
+      pSel.value=projects[i].id;
+      oSel.value=projects[i].id;
+      break;
+    }
+  }
+}
+
+/* ── 管理員 ─────────────────────────────────────── */
+function adminUnlockCheck(){
+  var pin=document.getElementById('admin-pin-input').value;
+  var stored=localStorage.getItem(ADMIN_PIN_KEY)||'1234';
+  if(pin===stored){
+    adminUnlocked=true;
+    document.getElementById('admin-lock').style.display='none';
+    document.getElementById('admin-content').style.display='block';
+    renderProjList();
+  }else{
+    showToast('\u5bc6\u78bc\u932f\u8aa4');
+    document.getElementById('admin-pin-input').value='';
+  }
+}
+
+function adminLock(){
+  adminUnlocked=false;
+  document.getElementById('admin-lock').style.display='block';
+  document.getElementById('admin-content').style.display='none';
+  document.getElementById('admin-pin-input').value='';
+}
+
+function renderProjList(){
+  var list=document.getElementById('admin-proj-list');
+  if(!list)return;
+  if(!projects.length){
+    list.innerHTML='<div class="proj-empty">\u5c1a\u7121\u5de5\u7a0b\uff0c\u9ede\u53f3\u4e0a\u89d2\u300c\uff0b \u65b0\u589e\u5de5\u7a0b\u300d\u958b\u59cb</div>';
+    return;
+  }
+  var html='';
+  projects.forEach(function(p,i){
+    html+='<div class="proj-item">'+
+      '<div class="proj-item-info">'+
+        '<div class="proj-item-name">'+escP(p.name)+'</div>'+
+        '<div class="proj-item-sub">'+escP(p.orderNo)+
+          (p.startDate?' ｜ '+p.startDate:'')+
+          (p.endDate?' ~ '+p.endDate:'')+
+        '</div>'+
+      '</div>'+
+      '<div class="proj-item-btns">'+
+        '<button onclick="editProject('+i+')" style="background:var(--pri);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">\u7de8\u8f2f</button>'+
+        '<button onclick="deleteProject('+i+')" style="background:var(--danger);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">\u522a\u9664</button>'+
+      '</div>'+
+    '</div>';
+  });
+  list.innerHTML=html;
+}
+
+function showAddProject(){
+  document.getElementById('proj-form-title').textContent='\u65b0\u589e\u5de5\u7a0b';
+  document.getElementById('proj-form-idx').value='';
+  document.getElementById('proj-form-name').value='';
+  document.getElementById('proj-form-order').value='';
+  document.getElementById('proj-form-start').value='';
+  document.getElementById('proj-form-end').value='';
+  document.getElementById('proj-form').style.display='block';
+  document.getElementById('proj-form-name').focus();
+}
+
+function editProject(idx){
+  var p=projects[idx];if(!p)return;
+  document.getElementById('proj-form-title').textContent='\u7de8\u8f2f\u5de5\u7a0b';
+  document.getElementById('proj-form-idx').value=idx;
+  document.getElementById('proj-form-name').value=p.name;
+  document.getElementById('proj-form-order').value=p.orderNo;
+  document.getElementById('proj-form-start').value=p.startDate||'';
+  document.getElementById('proj-form-end').value=p.endDate||'';
+  document.getElementById('proj-form').style.display='block';
+}
+
+function saveProject(){
+  var idx=document.getElementById('proj-form-idx').value;
+  var name=document.getElementById('proj-form-name').value.trim();
+  var order=document.getElementById('proj-form-order').value.trim();
+  var start=document.getElementById('proj-form-start').value;
+  var end=document.getElementById('proj-form-end').value;
+  if(!name||!order){showToast('\u8acb\u586b\u5beb\u5de5\u7a0b\u540d\u7a31\u548c\u6d3e\u4efb\u55ae\u865f');return;}
+  var obj={id:idx===''?Date.now().toString():projects[parseInt(idx)].id,
+    name:name,orderNo:order,startDate:start,endDate:end};
+  if(idx===''){projects.push(obj);}
+  else{projects[parseInt(idx)]=obj;}
+  saveProjectsDB();
+  renderProjList();
+  document.getElementById('proj-form').style.display='none';
+  pushProjectToCloud(obj); /* 推到雲端供成員同步 */
+  showToast('\u2705 \u5df2\u5132\u5b58');
+}
+
+function deleteProject(idx){
+  projects.splice(idx,1);
+  saveProjectsDB();
+  renderProjList();
+  showToast('\u5df2\u522a\u9664');
+}
+
+function cancelProjectForm(){
+  document.getElementById('proj-form').style.display='none';
+}
+
+function exportProjects(){
+  var data=JSON.stringify(projects);
+  var encoded=btoa(unescape(encodeURIComponent(data)));
+  document.getElementById('export-code').value=encoded;
+  document.getElementById('export-area').style.display='block';
+  showToast('\u8a2d\u5b9a\u78bc\u5df2\u7522\u751f');
+}
+
+function copyExportCode(){
+  var inp=document.getElementById('export-code');
+  inp.select();inp.setSelectionRange(0,99999);
+  try{document.execCommand('copy');}catch(e){}
+  showToast('\u2705 \u5df2\u8907\u88fd\uff01');
+}
+
+function importProjects(){
+  var code=document.getElementById('import-code').value.trim();
+  if(!code){showToast('\u8acb\u8f38\u5165\u8a2d\u5b9a\u78bc');return;}
+  try{
+    var data=JSON.parse(decodeURIComponent(escape(atob(code))));
+    if(!Array.isArray(data))throw new Error();
+    projects=data;
+    saveProjectsDB();
+    renderProjList();
+    showToast('\u2705 \u5320\u5165\u6210\u529f\uff01\u5171 '+projects.length+' \u500b\u5de5\u7a0b');
+    document.getElementById('import-code').value='';
+  }catch(e){showToast('\u274c \u8a2d\u5b9a\u78bc\u683c\u5f0f\u932f\u8aa4');}
+}
+
+function changeAdminPin(){
+  var old2=document.getElementById('old-pin').value;
+  var newP=document.getElementById('new-pin').value;
+  var stored=localStorage.getItem(ADMIN_PIN_KEY)||'1234';
+  if(old2!==stored){showToast('\u820a\u5bc6\u78bc\u932f\u8aa4');return;}
+  if(newP.length<4){showToast('\u65b0\u5bc6\u78bc\u81f3\u5c114\u4f4d');return;}
+  localStorage.setItem(ADMIN_PIN_KEY,newP);
+  document.getElementById('old-pin').value='';
+  document.getElementById('new-pin').value='';
+  showToast('\u2705 \u5bc6\u78bc\u5df2\u66f4\u65b0');
+}
+
+/* ════════════════════════════════════════════════════
+   人員名單 & 部門管理
+════════════════════════════════════════════════════ */
+var staffList=[];
+var deptList=[];
+var STAFF_KEY='cr-staff';
+var DEPT_KEY='cr-depts';
+
+/* ── 人員 ── */
+function loadStaff(){
+  var raw=localStorage.getItem(STAFF_KEY);
+  if(raw){try{staffList=JSON.parse(raw);}catch(e){staffList=[];}}
+  updateNameDropdowns();
+}
+function saveStaff(){
+  localStorage.setItem(STAFF_KEY,JSON.stringify(staffList));
+  updateNameDropdowns();
+  renderStaffList();
+}
+function addStaff(){
+  var inp=document.getElementById('new-staff-name');
+  var name=(inp?inp.value:'').trim();
+  if(!name){showToast('\u8acb\u8f38\u5165\u59d3\u540d');return;}
+  if(staffList.indexOf(name)>=0){showToast('\u8a72\u59d3\u540d\u5df2\u5b58\u5728');return;}
+  staffList.push(name);
+  inp.value='';
+  saveStaff();
+  showToast('\u2705 \u5df2\u65b0\u589e\uff1a'+name);
+}
+function deleteStaff(idx){
+  staffList.splice(idx,1);
+  saveStaff();
+}
+function renderStaffList(){
+  var el=document.getElementById('admin-staff-list');
+  if(!el)return;
+  if(!staffList.length){el.innerHTML='<div class="proj-empty">\u5c1a\u7121\u4eba\u54e1</div>';return;}
+  var html='';
+  staffList.forEach(function(name,i){
+    html+='<div class="proj-item" style="padding:8px 14px">'+
+      '<div class="proj-item-info"><div class="proj-item-name">'+escP(name)+'</div></div>'+
+      '<button onclick="deleteStaff('+i+')" style="background:var(--danger);color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer">\u522a\u9664</button>'+
+    '</div>';
+  });
+  el.innerHTML=html;
+}
+function updateNameDropdowns(){
+  var selIds=['rep-sel','smgr-sel','srev-sel','sfil-sel'];
+  selIds.forEach(function(selId){
+    var sel=document.getElementById(selId);
+    if(!sel)return;
+    var cur=sel.value;
+    var html='<option value="">\u2014 \u9078\u64c7\u4eba\u54e1 \u2014</option>';
+    staffList.forEach(function(name){
+      html+='<option value="'+escP(name)+'">'+escP(name)+'</option>';
+    });
+    sel.innerHTML=html;
+    if(cur)sel.value=cur;
+  });
+}
+function onNameSelect(selId,inputId){
+  var val=document.getElementById(selId).value;
+  var inp=document.getElementById(inputId);
+  if(inp&&val)inp.value=val;
+  /* 填寫人選完後同步填表 */
+  if(inputId==='rep'&&val)syncFiller(val);
+}
+
+/* ── 部門 ── */
+function loadDepts(){
+  var raw=localStorage.getItem(DEPT_KEY);
+  if(raw){try{deptList=JSON.parse(raw);}catch(e){deptList=[];}}
+  updateDeptDropdowns();
+}
+function saveDepts(){
+  localStorage.setItem(DEPT_KEY,JSON.stringify(deptList));
+  updateDeptDropdowns();
+  renderDeptList();
+}
+function addDept(){
+  var inp=document.getElementById('new-dept-name');
+  var name=(inp?inp.value:'').trim();
+  if(!name){showToast('\u8acb\u8f38\u5165\u90e8\u9580\u540d\u7a31');return;}
+  if(deptList.indexOf(name)>=0){showToast('\u8a72\u90e8\u9580\u5df2\u5b58\u5728');return;}
+  deptList.push(name);
+  inp.value='';
+  saveDepts();
+  showToast('\u2705 \u5df2\u65b0\u589e\uff1a'+name);
+}
+function deleteDept(idx){
+  deptList.splice(idx,1);
+  saveDepts();
+}
+function renderDeptList(){
+  var el=document.getElementById('admin-dept-list');
+  if(!el)return;
+  if(!deptList.length){el.innerHTML='<div class="proj-empty">\u5c1a\u7121\u90e8\u9580</div>';return;}
+  var html='';
+  deptList.forEach(function(name,i){
+    html+='<div class="proj-item" style="padding:8px 14px">'+
+      '<div class="proj-item-info"><div class="proj-item-name">'+escP(name)+'</div></div>'+
+      '<button onclick="deleteDept('+i+')" style="background:var(--danger);color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer">\u522a\u9664</button>'+
+    '</div>';
+  });
+  el.innerHTML=html;
+}
+function updateDeptDropdowns(){
+  var sel=document.getElementById('sc-sel');
+  if(!sel)return;
+  var cur=sel.value;
+  var html='<option value="">\u2014 \u9078\u64c7\u90e8\u9580 \u2014</option>';
+  deptList.forEach(function(name){
+    html+='<option value="'+escP(name)+'">'+escP(name)+'</option>';
+  });
+  sel.innerHTML=html;
+  if(cur)sel.value=cur;
+}
+function onDeptSelect(selId,inputId){
+  var val=document.getElementById(selId).value;
+  var inp=document.getElementById(inputId);
+  if(inp&&val)inp.value=val;
+}
+
+/* ── 同步所有姓名下拉（草稿載入後使用）── */
+function syncAllNameSelects(){
+  var nameMap={'rep-sel':'rep','smgr-sel':'smgr','srev-sel':'srev','sfil-sel':'sfil','sc-sel':'sc'};
+  Object.keys(nameMap).forEach(function(selId){
+    var inputId=nameMap[selId];
+    var sel=document.getElementById(selId);
+    var inp=document.getElementById(inputId);
+    if(sel&&inp&&inp.value){
+      sel.value=inp.value;
+    }
+  });
+}
+
+/* ── renderProjList + renderStaffList + renderDeptList 在登入時一起呼叫 ── */
+var _origAdminUnlockCheck=adminUnlockCheck;
+adminUnlockCheck=function(){
+  var pin=document.getElementById('admin-pin-input').value;
+  var stored=localStorage.getItem(ADMIN_PIN_KEY)||'1234';
+  if(pin===stored){
+    adminUnlocked=true;
+    document.getElementById('admin-lock').style.display='none';
+    document.getElementById('admin-content').style.display='block';
+    renderProjList();
+    renderStaffList();
+    renderDeptList();
+  }else{
+    showToast('\u5bc6\u78bc\u932f\u8aa4');
+    document.getElementById('admin-pin-input').value='';
+  }
+};
+
+/* ── 匯出也包含人員和部門資料 ── */
+var _origExport=exportProjects;
+exportProjects=function(){
+  var data=JSON.stringify({
+    projects:projects,
+    staff:staffList,
+    depts:deptList
+  });
+  var encoded=btoa(unescape(encodeURIComponent(data)));
+  document.getElementById('export-code').value=encoded;
+  document.getElementById('export-area').style.display='block';
+  showToast('\u8a2d\u5b9a\u78bc\u5df2\u7522\u751f\uff08\u5305\u542b\u5de5\u7a0b+\u4eba\u54e1+\u90e8\u9580\uff09');
+};
+
+/* ── 匯入也包含人員和部門資料 ── */
+var _origImport=importProjects;
+importProjects=function(){
+  var code=document.getElementById('import-code').value.trim();
+  if(!code){showToast('\u8acb\u8f38\u5165\u8a2d\u5b9a\u78bc');return;}
+  try{
+    var data=JSON.parse(decodeURIComponent(escape(atob(code))));
+    /* 相容舊格式（純工程陣列）*/
+    if(Array.isArray(data)){
+      projects=data;
+    } else {
+      if(data.projects)projects=data.projects;
+      if(data.staff)staffList=data.staff;
+      if(data.depts)deptList=data.depts;
+    }
+    saveProjectsDB();
+    saveStaff();
+    saveDepts();
+    renderProjList();renderStaffList();renderDeptList();
+    var total=projects.length+staffList.length+deptList.length;
+    showToast('\u2705 \u5320\u5165\u6210\u529f\uff01\u5de5\u7a0b:'+projects.length+' \u4eba\u54e1:'+staffList.length+' \u90e8\u9580:'+deptList.length);
+    document.getElementById('import-code').value='';
+  }catch(e){showToast('\u274c \u8a2d\u5b9a\u78bc\u683c\u5f0f\u932f\u8aa4');}
+};
+
+/* ── 新增日報表：清空所有欄位到預設狀態 ── */
+function clearAllToDefault(){
+  /* 清空文字欄位 */
+  ['proj','sdate','edate','rem','rep','ono','abn','imp','sc','smgr','srev','sfil','wam','wpm'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('rdate').value=new Date().toISOString().split('T')[0];
+  /* 清空下拉選單 */
+  ['proj-sel','ono-sel','rep-sel','smgr-sel','srev-sel','sfil-sel','sc-sel'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  /* 重設進度 */
+  document.getElementById('prog').value='\u6b63\u5e38';
+  document.querySelectorAll('.pchip').forEach(function(el){el.className='pchip';});
+  document.querySelectorAll('.chip').forEach(function(el){el.classList.remove('s-sun','s-cld','s-ran');});
+  /* 清空每日資料 */
+  workers=[];mats=[];equips=[];photos=[];attachments=[];
+  ['wb','mb','eb','pgrid','att-list'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+  /* 加入預設第一行 */
+  addW({prog:'\u6b63\u5e38',type:'\u5de5\u7a0b\u7ba1\u7406',item:'\u5de5\u7a0b\u7ba1\u7406',vendor:'\u7fd4\u5929',am:'1',pm:'1',tin:'0800',tout:'1700',cnt:'\u5de5\u7a0b\u7ba1\u7406'});
+  addM();addE();addPh();addPh();renderAtt();
+  calcD();updStats();
+  localStorage.removeItem('cr-d-last');
+  updateDraftBanner();
+  showToast('\u2705 \u5df2\u6e05\u7a7a\uff0c\u51c6\u5099\u586b\u5beb\u65b0\u65e5\u5831\u8868');
+}
+
+/* ── 清空每日記錄（保留工程/簽名設定）── */
+function clearDailyFields(){
+  workers=[];mats=[];equips=[];photos=[];attachments=[];
+  ['wb','mb','eb','pgrid','att-list'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+  var abn=document.getElementById('abn');if(abn)abn.value='';
+  var imp2=document.getElementById('imp');if(imp2)imp2.value='';
+  addW({prog:'\u6b63\u5e38',type:'\u5de5\u7a0b\u7ba1\u7406',item:'\u5de5\u7a0b\u7ba1\u7406',vendor:'\u7fd4\u5929',am:'1',pm:'1',tin:'0800',tout:'1700',cnt:'\u5de5\u7a0b\u7ba1\u7406'});
+  addM();addE();addPh();addPh();renderAtt();
+  updStats();
+}
+
+/* ── 日期變更：自動載入對應草稿或清空每日欄位 ── */
+
+function loadLastDraft(){
+  var lk=localStorage.getItem('cr-d-last');
+  if(lk){var raw=localStorage.getItem(lk);if(raw){try{applyDraftData(JSON.parse(raw));updateDraftBanner();}catch(e){}}return;}
+  var old=localStorage.getItem('cr7');
+  if(old){try{var d=JSON.parse(old);applyDraftData(d);var ono=d.ono||'draft';var date=d.rdate||new Date().toISOString().split('T')[0];var key='cr-d-'+ono+'-'+date;localStorage.setItem(key,old);var idx=[{key:key,ono:ono,proj:d.proj||'',date:date,savedAt:new Date().toISOString()}];localStorage.setItem('cr-d-index',JSON.stringify(idx));localStorage.setItem('cr-d-last',key);updateDraftBanner();}catch(e){}}
+}
+function applyDraft(key){
+  var raw=localStorage.getItem(key);if(!raw){showToast('\u627e\u4e0d\u5230\u8a72\u8349\u7a3f');return;}
+  try{applyDraftData(JSON.parse(raw));localStorage.setItem('cr-d-last',key);updateDraftBanner();}catch(e){showToast('\u274c\u8349\u7a3f\u683c\u5f0f\u932f\u8aa4');}
+}
+function applyDraftData(d){
+  var flds=['co','proj','sdate','edate','rep','rdate','ono','abn','imp','sc','smgr','srev','sfil'];
+  flds.forEach(function(id){var el=document.getElementById(id);if(el&&d[id]!==undefined)el.value=d[id];});
+  if(d.co)document.getElementById('dco').textContent=d.co;
+  if(d.prog){document.getElementById('prog').value=d.prog;var pm={'正常':'s-ok','落後':'s-bh','超前':'s-ah'};document.querySelectorAll('.pchip').forEach(function(c,i){if(['正常','落後','超前'][i]===d.prog)c.classList.add(pm[d.prog]);});}
+  ['am','pm'].forEach(function(t){var wv=t==='am'?d.wam:d.wpm;if(!wv)return;document.getElementById('w'+t).value=wv;var wm={'晴':'s-sun','陰':'s-cld','雨':'s-ran'};document.getElementById('w'+t+'g').querySelectorAll('.chip').forEach(function(cc){if(cc.textContent.trim().indexOf(wv)>=0)cc.className='chip '+(wm[wv]||'');});});
+  if(d.workers&&d.workers.length){workers=d.workers;renderW();}
+  if(d.mats&&d.mats.length){mats=d.mats;renderM();}
+  if(d.equips&&d.equips.length){equips=d.equips;renderE();}
+  /* 照片/附件從 IDB 非同步載入（文字草稿不再包含圖片資料） */
+  var _applyKey='cr-d-'+(d.ono||'draft')+'-'+(d.rdate||'');
+  if(d.photos&&d.photos.length){
+    /* 相容舊格式：如果草稿本身有照片（舊localStorage格式）直接用 */
+    photos=d.photos.map(function(p){return{src:p.src,cap:p.cap};});renderPh();
+  } else {
+    loadPhotosFromIDB(_applyKey);
+  }
+  if(d.attachments&&d.attachments.length){
+    attachments=d.attachments.map(function(a){return{name:a.name,type:a.type,pages:a.pages||[],cap:a.cap||''};});renderAtt();
+  } else {
+    loadAttachmentsFromIDB(_applyKey);
+  }
+  syncProjectSelects();syncAllNameSelects();calcD();updStats();
+  /* 更新目前追蹤的 ono/date */
+  _curOno=v('ono');_curDate=v('rdate');
+  /* 載入草稿後自動計算累計 */
+  setTimeout(calcAllCumulatives, 200);
+}
+function updateDraftBanner(){
+  var el=document.getElementById('draft-banner-text');if(!el)return;
+  var ono=v('ono')||'(\u7121\u6d3e\u4efb\u55ae\u865f)';
+  var date=fmtDate(v('rdate'))||'(\u7121\u65e5\u671f)';
+  el.textContent=ono+' \u2502 '+date;
+}
+function showDraftModal(){renderDraftList();document.getElementById('draft-modal').classList.add('show');}
+function closeDraftModal(){document.getElementById('draft-modal').classList.remove('show');}
+function renderDraftList(){
+  var list=document.getElementById('draft-list');if(!list)return;
+  var idx=JSON.parse(localStorage.getItem('cr-d-index')||'[]');
+  if(!idx.length){list.innerHTML='<div class="proj-empty">\u5c1a\u7121\u8349\u7a3f</div>';return;}
+  var curKey=localStorage.getItem('cr-d-last');var html='';
+  idx.forEach(function(e){
+    var isCur=e.key===curKey;
+    html+='<div class="draft-item">'+
+      '<div class="draft-item-info">'+
+        '<div class="draft-item-ono">'+escP(e.ono)+(isCur?' <span style="background:#1a56db;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;vertical-align:middle">\u76ee\u524d</span>':'')+
+        '</div><div class="draft-item-sub">'+fmtDate(e.date)+(e.proj?' \u2502 '+escP(e.proj):'')+
+        '</div></div>'+
+      '<div class="draft-item-btns">'+
+        '<button onclick="applyDraft(\''+e.key+'\');closeDraftModal();" style="background:var(--pri);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">\u8f09\u5165</button>'+
+        '<button onclick="confirmDelDraft(\''+e.key+'\')" style="background:var(--danger);color:#fff;border:none;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer">\u5220\u9664</button>'+
+      '</div></div>';
+  });
+  list.innerHTML=html;
+}
+function confirmDelDraft(key){
+  if(!confirm('\u78ba\u5b9a\u5220\u9664\u9019\u500b\u8349\u7a3f\uff1f'))return;
+  localStorage.removeItem(key);
+  deleteMediaFromIDB(key); /* 同步刪除 IDB 中的照片/附件 */
+  var idx=JSON.parse(localStorage.getItem('cr-d-index')||'[]');
+  idx=idx.filter(function(e){return e.key!==key;});
+  localStorage.setItem('cr-d-index',JSON.stringify(idx));
+  if(localStorage.getItem('cr-d-last')===key){var nl=idx.length?idx[0].key:'';if(nl)localStorage.setItem('cr-d-last',nl);else localStorage.removeItem('cr-d-last');}
+  renderDraftList();showToast('\u5df2\u5220\u9664');
+}
+function startNewReport(){
+  document.getElementById('rdate').value=new Date().toISOString().split('T')[0];
+  clearDailyFields();
+  calcD();updateDraftBanner();closeDraftModal();
+  showToast('\u2705 \u4eca\u65e5\u65b0\u65e5\u5831\u5df2\u958b\u59cb');
+}
+
+/* ── 目前草稿追蹤 ── */
+var _curOno='', _curDate='';
+
+/* 當派任單號或日期變更時，檢查是否需要切換草稿或清空每日欄位 */
+function checkAndSwitchCombo(){
+  var newOno=v('ono');
+  var newDate=v('rdate');
+  if(newOno===_curOno&&newDate===_curDate)return; /* 沒有變化 */
+
+  var key='cr-d-'+(newOno||'draft')+'-'+newDate;
+  var existing=localStorage.getItem(key);
+
+  if(existing){
+    /* 此組合已有草稿 → 自動載入 */
+    try{
+      applyDraftData(JSON.parse(existing));
+      localStorage.setItem('cr-d-last',key);
+      showToast('\u5df2\u8f09\u5165 '+(newOno||'')+' '+fmtDate(newDate)+' \u7684\u8349\u7a3f');
+    }catch(e){}
+    return;
+  }
+
+  /* 無現有草稿 */
+  if(newOno===_curOno && newDate!==_curDate){
+    /* 相同派任單號，不同日期 → 清空每日欄位（保留工程/簽名資訊）*/
+    clearDailyFields();
+    showToast('\u65b0\u65e5\u671f '+fmtDate(newDate)+'\uff0c\u6bcf\u65e5\u6b04\u4f4d\u5df2\u91cd\u7f6e');
+  }
+  _curOno=newOno;
+  _curDate=newDate;
+  updateDraftBanner();
+}
+
+/* 清空每日欄位：異常、重要、工作人員、材料、機具、照片（保留工程/簽名）*/
+function clearDailyFields(){
+  workers=[];mats=[];equips=[];photos=[];
+  ['wb','mb','eb','pgrid'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.innerHTML='';
+  });
+  var abn=document.getElementById('abn');if(abn)abn.value='';
+  var imp2=document.getElementById('imp');if(imp2)imp2.value='';
+  addW({prog:'\u6b63\u5e38',type:'\u5de5\u7a0b\u7ba1\u7406',item:'\u5de5\u7a0b\u7ba1\u7406',vendor:'\u7fd4\u5929',am:'1',pm:'1',tin:'0800',tout:'1700',cnt:'\u5de5\u7a0b\u7ba1\u7406'});
+  addM();addE();addPh();addPh();
+  _curDate=v('rdate');
+  updStats();
+}
+
+/* 公開匯入：不需管理員密碼，一般使用者貼設定碼即可同步設定 */
+function pubImportSettings(){
+  var code=document.getElementById('pub-import-code').value.trim();
+  var result=document.getElementById('pub-import-result');
+  if(!code){if(result)result.textContent='請輸入設定碼';return;}
+  try{
+    var data=JSON.parse(decodeURIComponent(escape(atob(code))));
+    var pCount=0,sCount=0,dCount=0;
+    /* 相容新舊格式 */
+    if(Array.isArray(data)){
+      projects=data;pCount=projects.length;
+    } else {
+      if(data.projects){projects=data.projects;pCount=projects.length;}
+      if(data.staff){staffList=data.staff;sCount=staffList.length;}
+      if(data.depts){deptList=data.depts;dCount=deptList.length;}
+    }
+    saveProjectsDB();saveStaff();saveDepts();
+    var msg='✅ 匠入成功！工程:'+pCount+' 人員:'+sCount+' 部門:'+dCount;
+    if(result)result.textContent=msg;
+    document.getElementById('pub-import-code').value='';
+    showToast(msg);
+  }catch(e){
+    var errMsg='❌ 設定碼格式錯誤，請確認設定碼是否正確';
+    if(result)result.textContent=errMsg;
+    showToast(errMsg);
+  }
+}
+
+/* Mac PDF 操作選單 */
+/* 通用 PDF 下載：Blob URL + <a> 元素，Safari/Chrome 都有效 */
+function downloadPDFBlob(blob, filename){
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=filename;a.style.display='none';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},2000);
+}
+
+var _macPDF=null,_macPDFBlob=null,_macPDFFilename='';
+function showMacPDFMenu(pdf,blob,filename){
+  _macPDF=pdf;_macPDFBlob=blob;_macPDFFilename=filename;
+  var el=document.getElementById('mac-pdf-filename');if(el)el.textContent=filename;
+  var menu=document.getElementById('mac-pdf-menu');
+  if(menu)menu.style.display='flex';else pdf.save(filename);
+}
+function closeMacMenu(){
+  var menu=document.getElementById('mac-pdf-menu');if(menu)menu.style.display='none';
+  _macPDF=null;_macPDFBlob=null;
+}
+function macSavePDF(){
+  if(!_macPDFBlob){closeMacMenu();return;}
+  /* showSaveFilePicker：僅 Chrome/Edge 支援；Safari 直接下載 */
+  if(typeof showSaveFilePicker==='function'){
+    showSaveFilePicker({
+      suggestedName:_macPDFFilename,
+      types:[{description:'PDF 文件',accept:{'application/pdf':['.pdf']}}]
+    }).then(function(fh){return fh.createWritable();})
+      .then(function(w){return w.write(_macPDFBlob).then(function(){return w.close();})})
+      .then(function(){showToast('✅ PDF 已儲存！');closeMacMenu();})
+      .catch(function(e){
+        if(e.name==='AbortError'){closeMacMenu();return;}
+        /* showSaveFilePicker 失敗時備用下載 */
+        downloadPDFBlob(_macPDFBlob,_macPDFFilename);
+        showToast('✅ PDF 已下載！');
+        closeMacMenu();
+      });
+  } else {
+    /* Safari on Mac：直接 Blob URL 下載 */
+    downloadPDFBlob(_macPDFBlob,_macPDFFilename);
+    showToast('✅ PDF 已下載！');
+    closeMacMenu();
+  }
+}
+
+function macDownloadPDF(){
+  if(!_macPDFBlob){closeMacMenu();return;}
+  try{
+    downloadPDFBlob(_macPDFBlob,_macPDFFilename);
+    showToast('✅ PDF 已下載！');
+  }catch(e){
+    console.error('download error',e);
+    if(_macPDF)_macPDF.save(_macPDFFilename);
+  }
+  closeMacMenu();
+}
+function macPrintPDF(){
+  if(!_macPDF){closeMacMenu();return;}
+  var url=URL.createObjectURL(_macPDFBlob);
+  var win=window.open(url,'_blank');
+  if(win)win.addEventListener('load',function(){setTimeout(function(){win.print();},500);});
+  else _macPDF.save(_macPDFFilename);
+  closeMacMenu();
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+/* 日期格式化：2026-06-26 → 2026/6/26 */
+function fmtDate(d){
+  if(!d)return '';
+  var p=d.split('-');
+  if(p.length!==3)return d;
+  return p[0]+'/'+parseInt(p[1])+'/'+parseInt(p[2]);
+}
+
+/* 填寫人 → 自動同步填表（若填表尚未手動修改）*/
+function syncFiller(val){
+  var sfEl=document.getElementById('sfil');
+  if(!sfEl)return;
+  var cur=sfEl.value;
+  var prev=sfEl.dataset.prevRep||'';
+  if(!cur||cur===prev){sfEl.value=val;}
+  sfEl.dataset.prevRep=val;
+}
+
+/* ═══════════════════════════════════════════════════
+   PDF 生成 - 精確複製原始Excel PDF格式
+   藍色: #92CDDC | 字型: Microsoft JhengHei/PingFang TC
+   頁邊距: 上19mm 右7mm 下42mm 左6mm
+═══════════════════════════════════════════════════ */
+/* ── 預覽 ── */
+function showPreview(){
+  var html=buildPrintHTML();
+  var pv=document.getElementById('pv-content');
+  pv.innerHTML='';
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var ifr=document.createElement('iframe');
+  ifr.style.cssText='border:none;display:block;background:#fff;width:794px;height:1050px;';
+  ifr.src=url;
+  ifr.onload=function(){URL.revokeObjectURL(url);};
+  var sc=Math.min((window.innerWidth-32)/794,1);
+  ifr.style.transformOrigin='top left';
+  ifr.style.transform='scale('+sc+')';
+  pv.style.cssText='overflow:hidden;background:#555;padding:16px;height:'+(1050*sc+32)+'px;';
+  pv.appendChild(ifr);
+  document.getElementById('pvmod').classList.add('show');
+}
+
+
+function closePv(){
+  document.getElementById('pvmod').classList.remove('show');
+}
+function buildPreviewHTML(){
+  var co=v('co')||'翔天科技事業股份有限公司';
+  var proj=v('proj')||''; var sd=fmtDate(v('sdate')); var ed=fmtDate(v('edate'));
+  var rem=v('rem')||''; var rep=v('rep')||''; var rd=fmtDate(v('rdate'));
+  var ono=v('ono')||''; var pg=v('prog')||'';
+  var wa=v('wam')||''; var wp=v('wpm')||'';
+  var ab=v('abn')||''; var imp2=v('imp')||'';
+  var sc2=v('sc')||''; var smgr2=v('smgr')||'';
+  var srev2=v('srev')||''; var sfil2=v('sfil')||v('rep')||'';
+  /* 工作人員預覽列 */
+  var wR='';
+  for(var i=0;i<workers.length;i++){
+    var w=workers[i]||{};
+    if(!w.type&&!w.item&&!w.cnt)continue;
+    wR+='<tr><td class="bl">'+(i+1)+'</td><td>'+esc(w.prog)+'</td><td>'+esc(w.type)+'</td>'+'<td class="tl">'+esc(w.item)+'</td><td>'+esc(w.vendor)+'</td>'+'<td>'+(w.am||'')+'</td><td>'+(w.pm||'')+'</td>'+'<td>'+(w.tin||'')+'</td><td>'+(w.tout||'')+'</td>'+'<td class="tl">'+esc(w.cnt)+'</td></tr>';
+  }
+  if(!wR)wR='<tr><td colspan="10" style="color:#aaa;font-style:italic">（尚未填寫工作項目）</td></tr>';
+  /* 材料預覽列 */
+  var mR='';
+  for(var i=0;i<mats.length;i++){
+    var m=mats[i]||{};
+    if(!m.name)continue;
+    mR+='<tr><td class="bl">'+(i+1)+'</td><td class="tl">'+esc(m.name)+'</td><td>'+esc(m.spec)+'</td><td>'+(m.today||'')+'</td><td>'+(m.total||'')+'</td><td>'+esc(m.unit)+'</td><td class="tl">'+esc(m.note)+'</td></tr>';
+  }
+  if(!mR)mR='<tr><td colspan="7" style="color:#aaa;font-style:italic">（尚未填寫材料）</td></tr>';
+  /* 機具預覽列 */
+  var eR='';
+  for(var i=0;i<equips.length;i++){
+    var e=equips[i]||{};
+    if(!e.name)continue;
+    eR+='<tr><td class="bl">'+(i+1)+'</td><td class="tl">'+esc(e.name)+'</td><td>'+esc(e.vendor)+'</td><td>'+(e.am||'')+'</td><td>'+(e.pm||'')+'</td><td class="tl">'+esc(e.cnt)+'</td></tr>';
+  }
+  if(!eR)eR='<tr><td colspan="6" style="color:#aaa;font-style:italic">（尚未填寫機具）</td></tr>';
+  /* 照片預覽 */
+  var phR='';
+  var pw=photos.filter(function(p){return p.src;});
+  if(pw.length>0){
+    for(var i=0;i<pw.length;i+=2){
+      var L=pw[i]; var R=pw[i+1]||null;
+      phR+='<tr>'+'<td style="padding:4px;border:.5pt solid #000"><div style="font-size:8pt;font-weight:bold;margin-bottom:3px">'+esc(L.cap)+'</div><img src="'+L.src+'" style="width:100%;max-height:80px;object-fit:cover;display:block"></td>'+'<td style="padding:4px;border:.5pt solid #000">'+(R?'<div style="font-size:8pt;font-weight:bold;margin-bottom:3px">'+esc(R.cap)+'</div><img src="'+R.src+'" style="width:100%;max-height:80px;object-fit:cover;display:block">':'')+'</td>'+'</tr>';
+    }
+  }
+  var hasPhotos=pw.length>0;
+  return '<div class="pv-page">'+
+    '<div class="pv-badge">📋 第1頁 — 日報表</div>'+
+    '<table class="pt" style="font-size:8pt">'+
+      '<tr><td colspan="10" class="bl" style="text-align:center;font-size:10pt;font-weight:bold;padding:3pt">'+esc(co)+'</td></tr>'+
+      '<tr><td colspan="10" class="bl" style="text-align:center;font-size:9pt;font-weight:bold;padding:2pt">施工日報表</td></tr>'+
+      '<tr>'+
+        '<th class="bl" colspan="2">日期</th><td colspan="2" class="bl">'+rd+'</td>'+
+        '<th class="bl">派任單號</th><td class="bl">'+esc(ono)+'</td>'+
+        '<th class="bl">工進</th><td class="bl">'+esc(pg)+'</td>'+
+        '<th class="bl">天氣</th><td class="bl">上午'+esc(wa)+' 下午'+esc(wp)+'</td>'+
+      '</tr>'+
+      '<tr><td colspan="8" class="bl tl" style="font-weight:bold">'+esc(proj)+'</td><th class="bl" colspan="2">填寫人：'+esc(rep)+'</th></tr>'+
+      '<tr>'+
+        '<th class="bl" colspan="2">開工日</th><td colspan="2" class="bl">'+sd+'</td>'+
+        '<th class="bl" colspan="2">完工日</th><td colspan="2" class="bl">'+ed+'</td>'+
+        '<th class="bl">剩餘天數</th><td class="bl">'+rem+'</td>'+
+      '</tr>'+
+    '</table>'+
+    '<table class="pt" style="margin-top:-1px">'+
+      '<tr><td colspan="10" class="bl" style="font-weight:bold;text-align:center;padding:2pt">每日工作人員及工作摘要</td></tr>'+
+      '<tr>'+
+        '<th class="bl">項次</th><th class="bl">進度</th><th class="bl">工程種類</th><th class="bl">工程項目</th>'+
+        '<th class="bl">廠商</th><th class="bl">上午</th><th class="bl">下午</th>'+
+        '<th class="bl">進場</th><th class="bl">離場</th><th class="bl">本日施作內容</th>'+
+      '</tr>'+
+      wR+
+    '</table>'+
+    '<table class="pt" style="margin-top:-1px">'+
+      '<tr><td class="bl" style="font-weight:bold">項次</td><td colspan="6" class="bl" style="font-weight:bold;text-align:center">材料進場數量統計表</td></tr>'+
+      '<tr><th class="bl"></th><th class="bl">材料</th><th class="bl">規格</th><th class="bl">本日進料</th><th class="bl">累計</th><th class="bl">單位</th><th class="bl">備註</th></tr>'+
+      mR+
+    '</table>'+
+    '<table class="pt" style="margin-top:-1px">'+
+      '<tr><td class="bl" style="font-weight:bold">項次</td><td colspan="5" class="bl" style="font-weight:bold;text-align:center">機具進場數量統計表</td></tr>'+
+      '<tr><th class="bl"></th><th class="bl">機具</th><th class="bl">廠商</th><th class="bl">上午</th><th class="bl">下午</th><th class="bl">工作內容</th></tr>'+
+      eR+
+    '</table>'+
+    '<table class="pt" style="margin-top:-1px">'+
+      '<tr>'+
+        '<td colspan="5" class="bl" style="font-weight:bold;text-align:left;padding-left:3pt">異常事項<br><span style="font-weight:normal;white-space:pre-wrap">'+esc(ab)+'</span></td>'+
+        '<td colspan="5" class="bl" style="font-weight:bold;text-align:left;padding-left:3pt">重要事項：<br><span style="font-weight:normal;white-space:pre-wrap">'+esc(imp2)+'</span></td>'+
+      '</tr>'+
+      '<tr>'+
+        '<td colspan="3" class="tl" style="padding-left:3pt">會辦單位：'+esc(sc2)+'</td>'+
+        '<td colspan="2" class="tl">主管：'+esc(smgr2)+'</td>'+
+        '<td colspan="2" class="tl">校閱：'+esc(srev2)+'</td>'+
+        '<td colspan="3" class="tl">填表：'+esc(sfil2)+'</td>'+
+      '</tr>'+
+    '</table>'+
+    '</div>'+
+    (hasPhotos?
+      '<div class="pv-page">'+
+        '<div class="pv-badge">📷 第2頁+ — 施工照片（共'+pw.length+'張）</div>'+
+        '<div style="text-align:center;background:#92CDDC;padding:6px;font-weight:bold;font-size:9pt;margin-bottom:4px">施工現場照片記錄</div>'+
+        '<table style="width:100%;border-collapse:collapse">'+phR+'</table>'+
+      '</div>'
+    :'<div class="pv-page" style="text-align:center;color:#aaa;padding:20px">📷 尚未上傳照片</div>');
+}
+
+/* ════════════════════════════════════════════════════
+   PDF 生成（html2canvas + jsPDF + Web Share API）
+   完全跳過列印對話框，直接產生可分享的 PDF 檔案
+════════════════════════════════════════════════════ */
+function doPDF(){
+  if(typeof html2canvas==='undefined'||typeof jspdf==='undefined'){
+    showToast('\u8f09\u5165\u4e2d\uff0c\u8acb\u7a0d\u5019\u518d\u8a66...');
+    setTimeout(doPDF,2000);return;
+  }
+  saveLocal();
+
+  /* loading overlay */
+  var ov=document.getElementById('pdf-ov');if(ov)ov.remove();
+  ov=document.createElement('div');ov.id='pdf-ov';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(8,30,42,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+  ov.innerHTML='<div style="width:54px;height:54px;border:4px solid rgba(255,255,255,.2);border-top-color:#c9a227;border-radius:50%;animation:spin 1s linear infinite"></div>'+
+    '<div style="color:#fff;font-size:15px;font-weight:700">\u6b63\u5728\u751f\u6210 PDF\u2026</div>'+
+    '<div style="color:rgba(255,255,255,.6);font-size:12px">\u8acb\u7a0d\u5019\uff0c\u52ff\u95dc\u9589\u6b64\u9801\u9762</div>'+
+    '<style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+  document.body.appendChild(ov);
+  function removeOv(){var o=document.getElementById('pdf-ov');if(o)o.remove();}
+
+  /* 使用與預覽相同的方式：完整 HTML 載入 iframe，確保 CSS 完整套用 */
+  var html=buildPrintHTML();
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var blobUrl=URL.createObjectURL(blob);
+
+  var iframe=document.createElement('iframe');
+  iframe.style.cssText='position:fixed;top:0;left:-200%;width:794px;height:2000px;border:none;visibility:hidden;';
+  document.body.appendChild(iframe);
+
+  function cleanup(){
+    if(iframe.parentNode)iframe.parentNode.removeChild(iframe);
+    URL.revokeObjectURL(blobUrl);
+  }
+
+  iframe.onload=function(){
+    /* 等待 iframe 內容完全渲染（包含圖片和樣式） */
+    var pc=photos.filter(function(p){return p.src;}).length;
+    setTimeout(function(){
+      var iDoc=iframe.contentDocument;
+      var pgDivs=Array.from(iDoc.querySelectorAll('.pg'));
+      if(!pgDivs.length)pgDivs=[iDoc.body];
+
+      var opts={
+        scale:3,
+        useCORS:true,
+        allowTaint:true,
+        backgroundColor:'#ffffff',
+        logging:false,
+        imageTimeout:30000
+      };
+
+      var canvasArr=[];
+      function cap(i){
+        if(i>=pgDivs.length){
+          cleanup();
+          makePDF(canvasArr);
+          return;
+        }
+        html2canvas(pgDivs[i],opts).then(function(cv){
+          canvasArr.push(cv);cap(i+1);
+        }).catch(function(err){
+          cleanup();removeOv();
+          showToast('\u274c \u622a\u5716\u5931\u6557: '+err.message);
+          console.error(err);
+        });
+      }
+      cap(0);
+    },800+pc*400);
+  };
+
+  iframe.onerror=function(){
+    cleanup();removeOv();showToast('\u274c \u9801\u9762\u8f09\u5165\u5931\u6557');
+  };
+
+  iframe.src=blobUrl;
+
+  function makePDF(canvases){
+    try{
+      var J=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF||
+            (typeof jsPDF!=='undefined'?jsPDF:null);
+      if(!J)throw new Error('jsPDF \u672a\u8f09\u5165');
+      var p=new J({orientation:'p',unit:'mm',format:'a4',compress:true});
+      var pW=210,pH=297;
+      canvases.forEach(function(cv,i){
+        if(i>0)p.addPage();
+        var imgH=cv.height*pW/cv.width;
+        p.addImage(cv.toDataURL('image/jpeg',0.90),'JPEG',0,0,pW,Math.min(imgH,pH));
+      });
+
+      var nm=(v('ono')||'')+(v('proj')||'')+(v('rdate')||'').replace(/-/g,'');
+      if(!nm)nm='\u65bd\u5de5\u65e5\u5831';nm+='.pdf';
+
+      removeOv();
+      var bl=p.output('blob');
+      var fi=new File([bl],nm,{type:'application/pdf'});
+      var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+      var mac=/macintosh|mac os x/i.test(navigator.userAgent)&&!ios;
+
+      if(mac){
+        showMacPDFMenu(p,bl,nm);
+      } else if(navigator.share&&navigator.canShare&&navigator.canShare({files:[fi]})){
+        navigator.share({title:nm,files:[fi]})
+          .then(function(){showToast('\u2705 PDF \u5206\u4eab\u6210\u529f\uff01');})
+          .catch(function(e){if(e.name!=='AbortError'){p.save(nm);showToast('\u2705 PDF \u5df2\u5132\u5b58');}});
+      } else {
+        downloadPDFBlob(bl,nm);showToast('\u2705 PDF \u5df2\u4e0b\u8f09\uff01');
+      }
+    }catch(e){
+      removeOv();
+      showToast('\u274c PDF \u5931\u6557: '+(e.message||'').slice(0,40));
+      console.error(e);
+    }
+  }
+}
+
+function buildPrintHTML(){
+  /* 資料收集 */
+  var co=v('co')||'翔天科技事業股份有限公司';
+  var proj=v('proj')||''; var sd=fmtDate(v('sdate')); var ed=fmtDate(v('edate'));
+  var rem=v('rem')||''; var rep=v('rep')||''; var rd=fmtDate(v('rdate'));
+  var ono=v('ono')||''; var pg=v('prog')||'';
+  var wa=v('wam')||''; var wp=v('wpm')||'';
+  var ab=v('abn')||''; var imp2=v('imp')||'';
+  var sc2=v('sc')||''; var smgr2=v('smgr')||'';
+  var srev2=v('srev')||''; var sfil2=v('sfil')||v('rep')||'';
+
+  /* 工作人員列 (14) */
+  var wR='';
+  for(var i=0;i<14;i++){
+    var w=workers[i]||{};
+    wR+='<tr style="height:4.17mm;background:'+(i%2===0?'#ffffff':'#f0f6fc')+'">'+
+      '<td class="bl">'+(i+1)+'</td>'+
+      '<td>'+esc(w.prog)+'</td><td>'+esc(w.type)+'</td>'+
+      '<td style="text-align:left">'+esc(w.item)+'</td>'+
+      '<td>'+esc(w.vendor)+'</td>'+
+      '<td>'+(w.am||'')+'</td><td>'+(w.pm||'')+'</td>'+
+      '<td>'+(w.tin||'')+'</td><td>'+(w.tout||'')+'</td>'+
+      '<td style="text-align:left">'+esc(w.cnt)+'</td>'+
+      '</tr>';
+  }
+
+  /* 材料列 (10) */
+  var mR='';
+  for(var i=0;i<10;i++){
+    var m=mats[i]||{};
+    mR+='<tr style="height:4.5mm;background:'+(i%2===0?'#ffffff':'#f0f6fc')+'">'+
+      '<td class="bl">'+(i+1)+'</td>'+
+      '<td style="text-align:left">'+esc(m.name)+'</td>'+
+      '<td>'+esc(m.spec)+'</td>'+
+      '<td>'+(m.today||'')+'</td><td>'+(m.total||'')+'</td>'+
+      '<td>'+esc(m.unit)+'</td>'+
+      '<td style="text-align:left">'+esc(m.note)+'</td>'+
+      '</tr>';
+  }
+
+  /* 機具列 (10) */
+  var eR='';
+  for(var i=0;i<10;i++){
+    var e=equips[i]||{};
+    eR+='<tr style="height:4.6mm;background:'+(i%2===0?'#ffffff':'#f0f6fc')+'">'+
+      '<td class="bl">'+(i+1)+'</td>'+
+      '<td style="text-align:left">'+esc(e.name)+'</td>'+
+      '<td>'+esc(e.vendor)+'</td>'+
+      '<td>'+(e.am||'')+'</td><td>'+(e.pm||'')+'</td>'+
+      '<td style="text-align:left">'+esc(e.cnt)+'</td>'+
+      '</tr>';
+  }
+
+  /* 照片頁 (每頁6張: 3行×2欄) */
+  var pw=photos.filter(function(p){return p.src;});
+  var photoPages='';
+  if(pw.length>0){
+    var tot=Math.ceil(pw.length/6);
+    for(var pg2=0;pg2<tot;pg2++){
+      var sl=pw.slice(pg2*6,pg2*6+6);
+      while(sl.length<6)sl.push(null);
+      var pRows='';
+      for(var row=0;row<3;row++){
+        var L=sl[row*2]; var R=sl[row*2+1];
+        pRows+='<tr>'+
+          '<td class="ph-c">'+(L?esc(L.cap):'')+'</td>'+
+          '<td class="ph-c">'+(R?esc(R.cap):'')+'</td>'+
+          '</tr>'+
+          '<tr>'+
+          '<td class="ph-i">'+(L?'<img src="'+L.src+'">':'')+'</td>'+
+          '<td class="ph-i">'+(R?'<img src="'+R.src+'">':'')+'</td>'+
+          '</tr>';
+      }
+      var lbl=tot>1?' ('+(pg2+1)+'/'+tot+')':'';
+      photoPages+='<div class="pg">'+
+        '<table class="ph-tbl">'+
+          '<colgroup><col style="width:50.36%"><col style="width:49.64%"></colgroup>'+
+          '<tr><td colspan="2" class="ph-t">施工現場照片記錄'+lbl+'</td></tr>'+
+          pRows+
+        '</table></div>';
+    }
+  }
+
+  /* ═══ 統一 CSS ═══ */
+  var css=
+    '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box;margin:0;padding:0;}'+
+    'html,body{font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;font-size:8pt;font-weight:normal;margin:0;padding:0;}'+
+    '@page{size:A4 portrait;margin:0mm;}'+
+    '.pg{page-break-after:always;width:100%;padding:18mm 8mm 18mm 7mm;box-sizing:border-box;}'+
+    '.pg:last-child{page-break-after:avoid;}'+
+    '.pt{width:100%;border-collapse:collapse;table-layout:fixed;}'+
+    /* 灰藍細框 */
+    '.pt td,.pt th{border:0.5pt solid #8aa8c4;padding:0.8pt 3pt;vertical-align:middle;text-align:center;font-size:8pt;font-weight:normal;font-family:inherit;line-height:1.3;background:#fff;color:#111827;}'+
+    '.pt+.pt tr:first-child td,.pt+.pt tr:first-child th{border-top:none!important;}'+
+    /* 資訊列：淡灰藍底 */
+    '.bl{background:#eef4fb!important;color:#0d1a28;}'+
+    '.tl{text-align:left!important;}'+
+    '.tc{text-align:center!important;}'+
+    /* 段落標題 */
+    '.sec{font-size:7.8pt;font-weight:700;letter-spacing:0.5px;color:#0d1a28;}'+
+    /* 照片頁 */
+    '.ph-tbl{width:100%;border-collapse:collapse;table-layout:fixed;}'+
+    '.ph-tbl td{padding:0;border:0.5pt solid #b0c4d8;}'+
+    '.ph-t{text-align:center;font-size:10pt;font-weight:700;height:12.8mm;vertical-align:middle;color:#0d1a28;letter-spacing:0.8px;background:#d0e4f2!important;border:0.5pt solid #8098b0;}'+
+    '.ph-c{text-align:center;font-size:9.5pt;height:6.5mm;vertical-align:middle;padding:0 3pt;background:#eef4fb!important;color:#0d1a28;font-weight:600;}'+
+    '.ph-i{height:67.2mm;overflow:hidden;background:#fff!important;}'+
+    '.ph-i img{width:100%;height:100%;object-fit:cover;display:block;}';
+
+  /* 附件頁 */
+  var attPages='';
+  attachments.forEach(function(a){
+    a.pages.forEach(function(src,pi){
+      var lbl=a.pages.length>1?' ('+(pi+1)+'/'+a.pages.length+')':'';
+      attPages+='<div class="pg">'+
+        '<table style="width:100%;border-collapse:collapse;margin-bottom:6mm">'+
+          '<tr><td style="background:#ccdff0;color:#0d1a28;font-weight:700;text-align:center;font-size:8pt;padding:3pt 0;letter-spacing:0.8px;border:0.5pt solid #8098b0">📎 附件：'+esc(a.cap||a.name)+lbl+'</td></tr>'+
+        '</table>'+
+        '<img src="'+src+'" style="width:100%;height:auto;display:block;">'+
+      '</div>';
+    });
+  });
+
+  return '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><style>'+css+'</style></head><body>'+
+  /* tips 已移除 - 使用 @page margin=0 直接避免頁首頁尾 */
+  '<div class="pg">'+
+
+  /* ① 公司名稱 + 報表標題（合併成一格 14.6mm） */
+  '<table class="pt"><colgroup><col style="width:100%"></colgroup>'+
+  '<tr style="height:14.6mm">'+
+    '<td style="background:#c8ddf0;text-align:center;vertical-align:middle;border:0.5pt solid #a0bcd4;">'+
+      '<div style="font-size:13pt;font-weight:700;color:#0d1520;line-height:1.5;letter-spacing:0.8px">'+esc(co)+'</div>'+
+      '<div style="font-size:10pt;font-weight:600;color:#1a3050;line-height:1.5;letter-spacing:2px">施工日報表</div>'+
+    '</td>'+
+  '</tr></table>'+
+
+  /* ② 資訊行 1+2
+     正確10欄寬（對應PDF原始欄位x座標）：
+     5.33 | 14.42 | 11.13 | 14.88 | 4.60 | 10.34 | 5.17 | 5.17 | 5.87 | 23.09
+     Row1: 日期(c1)|日期值(c2)|派任單號(c3)|派任值(c4)|工進(c5)|工進值(c6)|天氣(c7,r2)|上午(c8)|上午值(c9)|填寫人(c10,r2)
+     Row2: 工程名稱(c1-6,span6)                                  |下午(c8)|下午值(c9)
+  */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:14.42%"><col style="width:11.13%">'+
+      '<col style="width:14.88%"><col style="width:4.60%"><col style="width:10.34%">'+
+      '<col style="width:5.17%"><col style="width:5.17%"><col style="width:5.87%">'+
+      '<col style="width:23.09%">'+
+    '</colgroup>'+
+    '<tr style="height:4.1mm">'+
+      '<td class="bl">日期</td>'+
+      '<td class="bl">'+rd+'</td>'+
+      '<td class="bl">派任單號</td>'+
+      '<td class="bl">'+esc(ono)+'</td>'+
+      '<td class="bl">工進</td>'+
+      '<td class="bl">'+esc(pg)+'</td>'+
+      '<td class="bl" rowspan="2">天氣</td>'+
+      '<td class="bl">上午</td>'+
+      '<td class="bl">'+esc(wa)+'</td>'+
+      '<td class="bl" rowspan="2">填寫人：'+esc(rep)+'</td>'+
+    '</tr>'+
+    '<tr style="height:4.1mm">'+
+      '<td class="bl" colspan="6" style="font-size:8.5pt;text-align:center">'+esc(proj)+'</td>'+
+      '<td class="bl">下午</td>'+
+      '<td class="bl">'+esc(wp)+'</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ③ 資訊行3（6欄，欄界對齊上方資訊行1+2的垂直線）
+     欄寬：10.50 | 20.43 | 10.23 | 24.71 | 11.04 | 23.09
+     對齊點：開工日右=10.50%（=col1+2右）
+             完工日値右=65.87%（=col7右，天氣欄右邊界）✓
+             剩餘天數右=76.91%（=col9右，上午値右邊界）✓
+             天數値右=100%（=col10右）✓
+  */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:10.50%"><col style="width:20.43%">'+
+      '<col style="width:10.23%"><col style="width:24.71%">'+
+      '<col style="width:11.04%"><col style="width:23.09%">'+
+    '</colgroup>'+
+    '<tr style="height:3.9mm">'+
+      '<td class="bl">開工日</td>'+
+      '<td class="bl">'+sd+'</td>'+
+      '<td class="bl">完工日</td>'+
+      '<td class="bl">'+ed+'</td>'+
+      '<td class="bl">剩餘天數</td>'+
+      '<td class="bl">'+rem+'</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ④ 每日工作人員段落標題 */
+  '<table class="pt"><colgroup><col style="width:100%"></colgroup>'+
+  '<tr style="height:4.2mm">'+'<td style="background:#ccdff0;color:#0d1a28;font-weight:700;text-align:center;font-size:7.8pt;letter-spacing:0.8px;border:0.5pt solid #8098b0;">每日工作人員及工作摘要</td></tr>'+
+  '</table>'+
+
+  /* ⑤ 工作人員欄位標題（2行，10欄） */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:5.17%"><col style="width:9.25%">'+
+      '<col style="width:16.14%"><col style="width:5.24%">'+
+      '<col style="width:4.63%"><col style="width:4.59%">'+
+      '<col style="width:5.17%"><col style="width:5.12%"><col style="width:39.35%">'+
+    '</colgroup>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="bl" rowspan="2">項次</td>'+
+      '<td class="bl" rowspan="2">進度</td>'+
+      '<td class="bl" rowspan="2">工程種類</td>'+
+      '<td class="bl" rowspan="2">工程項目</td>'+
+      '<td class="bl" rowspan="2">廠商</td>'+
+      '<td class="bl" colspan="2">出工人數</td>'+
+      '<td class="bl">進場</td>'+
+      '<td class="bl">離場</td>'+
+      '<td class="bl" rowspan="2">本日施作內容</td>'+
+    '</tr>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="bl">上午</td><td class="bl">下午</td>'+
+      '<td class="bl">時間</td><td class="bl">時間</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑥ 工作人員資料（14行，同10欄 colgroup） */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:5.17%"><col style="width:9.25%">'+
+      '<col style="width:16.14%"><col style="width:5.24%">'+
+      '<col style="width:4.63%"><col style="width:4.59%">'+
+      '<col style="width:5.17%"><col style="width:5.12%"><col style="width:39.35%">'+
+    '</colgroup>'+wR+
+  '</table>'+
+
+  /* ⑦ 材料段落標題＋欄頭（7欄） */
+  /* 欄界: 5.33|14.45|16.10|14.47|5.17|5.17|39.30 */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:14.45%"><col style="width:16.10%">'+
+      '<col style="width:14.47%"><col style="width:5.17%">'+
+      '<col style="width:5.17%"><col style="width:39.30%">'+
+    '</colgroup>'+
+    '<tr style="height:4.0mm">'+
+      '<td class="bl" rowspan="2">項次</td>'+
+      '<td colspan="6" style="background:#d0e4f2;color:#0d1a28;font-weight:700;text-align:center;font-size:7.8pt;letter-spacing:0.8px;border:0.5pt solid #8098b0;">材料進場數量統計表</td>'+
+    '</tr>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="bl">材料</td><td class="bl">規格</td>'+
+      '<td class="bl">本日進料</td><td class="bl">累計</td>'+
+      '<td class="bl">單位</td><td class="bl">備註</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑧ 材料資料（10行，同7欄 colgroup） */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:14.45%"><col style="width:16.10%">'+
+      '<col style="width:14.47%"><col style="width:5.17%">'+
+      '<col style="width:5.17%"><col style="width:39.30%">'+
+    '</colgroup>'+mR+
+  '</table>'+
+
+  /* ⑨ 機具段落標題＋欄頭（6欄） */
+  /* 欄界: 5.33|25.60|19.43|5.17|5.17|39.30 */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:25.60%">'+
+      '<col style="width:19.43%"><col style="width:5.17%">'+
+      '<col style="width:5.17%"><col style="width:39.30%">'+
+    '</colgroup>'+
+    '<tr style="height:4.0mm">'+
+      '<td class="bl" rowspan="2">項次</td>'+
+      '<td colspan="5" style="background:#d0e4f2;color:#0d1a28;font-weight:700;text-align:center;font-size:7.8pt;letter-spacing:0.8px;border:0.5pt solid #8098b0;">機具進場數量統計表</td>'+
+    '</tr>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="bl">機具</td><td class="bl">廠商</td>'+
+      '<td class="bl">上午</td><td class="bl">下午</td>'+
+      '<td class="bl">工作內容</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑩ 機具資料（10行，同6欄 colgroup） */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:25.60%">'+
+      '<col style="width:19.43%"><col style="width:5.17%">'+
+      '<col style="width:5.17%"><col style="width:39.30%">'+
+    '</colgroup>'+eR+
+  '</table>'+
+
+  /* ⑪ 異常/重要事項標題
+     垂直線對齊：50.36%（與工作人員/材料/機具/簽名列 的中線對齊）
+     異常事項：去掉冒號，置中（與重要事項一致）
+  */
+  '<table class="pt">'+
+    '<colgroup><col style="width:50.36%"><col style="width:49.64%"></colgroup>'+
+    '<tr style="height:8.9mm">'+
+      '<td style="background:#d0e4f2;color:#0d1a28;font-weight:700;text-align:center;font-size:7.8pt;letter-spacing:0.8px;border:0.5pt solid #8098b0;">異常事項</td>'+
+      '<td style="background:#d0e4f2;color:#0d1a28;font-weight:700;text-align:center;font-size:7.8pt;letter-spacing:0.8px;border:0.5pt solid #8098b0;">重要事項</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑫ 異常/重要 內容 */
+  '<table class="pt">'+
+    '<colgroup><col style="width:50.36%"><col style="width:49.64%"></colgroup>'+
+    '<tr style="height:40.9mm">'+
+      '<td style="vertical-align:top;text-align:left;padding:3pt;white-space:pre-wrap;color:#111827;font-size:8pt">'+esc(ab)+'</td>'+
+      '<td style="vertical-align:top;text-align:left;padding:3pt;white-space:pre-wrap;color:#111827;font-size:8pt">'+esc(imp2)+'</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑬ 簽名列 */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:25.18%"><col style="width:25.18%">'+
+      '<col style="width:24.82%"><col style="width:24.82%">'+
+    '</colgroup>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="tl" style="padding-left:3pt;color:#111827">會辦單位：'+esc(sc2)+'</td>'+
+      '<td class="tl" style="padding-left:3pt;color:#111827">主管：'+esc(smgr2)+'</td>'+
+      '<td class="tl" style="padding-left:3pt;color:#111827">校閱：'+esc(srev2)+'</td>'+
+      '<td class="tl" style="padding-left:3pt;color:#111827">填表：'+esc(sfil2)+'</td>'+
+    '</tr>'+
+  '</table>'+
+
+  '</div>'+ /* END PAGE 1 */
+
+  photoPages+
+
+  attPages+
+
+  '</body></html>';
+}
+</script>
+
+<!-- PWA 安裝提示 Banner -->
+<div id="pwa-install-banner">
+  <div class="pwa-icon">📲</div>
+  <div class="pwa-text">
+    <strong>加入主畫面，隨時使用！</strong>
+    點 Safari 下方的「分享」→「加入主畫面」即可安裝
+  </div>
+  <button class="pwa-close" onclick="dismissPWABanner()">✕ 知道了</button>
+</div>
+<script>
+
+/* ════════════════════════════════════════════════════
+   Firebase 初始化 & 認證系統
+════════════════════════════════════════════════════ */
+var firebaseConfig={
+  apiKey:"AIzaSyBGvllMaWFMiN4yhrz-y88Z-kfqJdn3Xhg",
+  authDomain:"xt-daily-report.firebaseapp.com",
+  projectId:"xt-daily-report",
+  storageBucket:"xt-daily-report.firebasestorage.app",
+  messagingSenderId:"1020429336915",
+  appId:"1:1020429336915:web:4ae01d17c1247f1c30a1a6"
+};
+
+var _fbApp=null,_fbAuth=null,_fbDb=null;
+var _currentUser=null,_userProfile=null,_userGroup=null;
+var _authTab='login';
+
+function initFirebase(){
+  try{
+    _fbApp=firebase.initializeApp(firebaseConfig);
+    _fbAuth=firebase.auth();
+    _fbDb=firebase.firestore();
+    _fbAuth.onAuthStateChanged(onAuthStateChanged);
+    console.log('[Firebase] 初始化成功');
+  }catch(e){console.error('[Firebase] 初始化失敗',e);}
+}
+
+function onAuthStateChanged(user){
+  _currentUser=user;
+  if(user){
+    /* 已登入：載入使用者資料 */
+    document.getElementById('login-modal').style.display='none';
+    document.getElementById('login-btn-wrap').style.display='none';
+    document.getElementById('user-status').style.display='flex';
+    loadUserProfile(user.uid);
+  } else {
+    /* 未登入：顯示登入按鈕 */
+    document.getElementById('login-btn-wrap').style.display='block';
+    document.getElementById('user-status').style.display='none';
+    _userProfile=null;_userGroup=null;
+  }
+}
+
+function loadUserProfile(uid){
+  _fbDb.collection('users').doc(uid).get().then(function(doc){
+    if(doc.exists){
+      _userProfile=doc.data();
+      updateUserUI();
+      if(_userProfile.groupId) loadGroupInfo(_userProfile.groupId);
+    } else {
+      /* 新用戶：建立資料 */
+      var name=_currentUser.displayName||_currentUser.email.split('@')[0];
+      var profile={displayName:name,email:_currentUser.email,role:'member',groupId:null,createdAt:new Date()};
+      _fbDb.collection('users').doc(uid).set(profile);
+      _userProfile=profile;
+      updateUserUI();
+    }
+  }).catch(function(e){console.error('loadUserProfile',e);});
+}
+
+function loadGroupInfo(groupId){
+  _fbDb.collection('groups').doc(groupId).get().then(function(doc){
+    if(doc.exists){
+      _userGroup=doc.data();
+      _userGroup.id=doc.id;
+      updateUserUI();
+      /* 同步雲端工程清單到本地 */
+      syncCloudProjectsToLocal();
+    }
+  });
+}
+
+function updateUserUI(){
+  if(!_userProfile)return;
+  var name=_userProfile.displayName||'使用者';
+  document.getElementById('user-name-label').textContent=name;
+  document.getElementById('sync-dot').style.background=_userGroup?'#10b981':'#f59e0b';
+  document.getElementById('user-group-label').textContent=_userGroup?('☁️ '+(_userGroup.name||'群組')):'未加入群組';
+  /* 使用者選單 */
+  document.getElementById('um-name').textContent=name;
+  document.getElementById('um-email').textContent=_userProfile.email||'';
+  var isManager=_userProfile.role==='manager';
+  document.getElementById('um-role').innerHTML=
+    '<span style="background:'+(isManager?'#fbbf24':'#60a5fa')+';color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700">'+(isManager?'👑 管理者':'👤 成員')+'</span>';
+  if(_userGroup){
+    document.getElementById('um-has-group').style.display='block';
+    document.getElementById('um-no-group').style.display='none';
+    document.getElementById('um-group-name').textContent=_userGroup.name||'';
+    document.getElementById('um-group').textContent='群組：'+(_userGroup.name||'');
+    if(isManager&&_userGroup.inviteCode){
+      document.getElementById('um-invite-show').style.display='block';
+      document.getElementById('um-invite-code').textContent=_userGroup.inviteCode;
+    }
+  } else {
+    document.getElementById('um-has-group').style.display='none';
+    document.getElementById('um-no-group').style.display='block';
+    document.getElementById('um-group').textContent='未加入群組';
+  }
+}
+
+/* ── 認證 UI ── */
+var _authMode='login';
+function switchAuthTab(tab){
+  _authMode=tab;
+  var isReg=tab==='reg';
+  document.getElementById('tab-login').style.cssText=isReg?'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b':'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#3d5a80;box-shadow:0 1px 4px rgba(0,0,0,.12)';
+  document.getElementById('tab-reg').style.cssText=isReg?'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#3d5a80;box-shadow:0 1px 4px rgba(0,0,0,.12)':'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b';
+  document.getElementById('auth-name-row').style.display=isReg?'block':'none';
+  document.getElementById('auth-submit').textContent=isReg?'註冊':'登入';
+  document.getElementById('auth-error').textContent='';
+}
+
+function showLoginModal(){
+  document.getElementById('login-modal').style.display='block';
+  document.getElementById('auth-error').textContent='';
+}
+
+function doAuth(){
+  var email=document.getElementById('auth-email').value.trim();
+  var pw=document.getElementById('auth-pw').value;
+  var name=document.getElementById('auth-name').value.trim();
+  var errEl=document.getElementById('auth-error');
+  var btn=document.getElementById('auth-submit');
+  if(!email||!pw){errEl.textContent='請填寫電子郵件和密碼';return;}
+  btn.textContent='處理中...';btn.disabled=true;
+  var p=_authMode==='reg'
+    ?_fbAuth.createUserWithEmailAndPassword(email,pw).then(function(cred){
+        if(name)return cred.user.updateProfile({displayName:name}).then(function(){return cred;});
+        return cred;
+      })
+    :_fbAuth.signInWithEmailAndPassword(email,pw);
+  p.then(function(){btn.textContent=_authMode==='reg'?'註冊':'登入';btn.disabled=false;})
+   .catch(function(e){
+     btn.textContent=_authMode==='reg'?'註冊':'登入';btn.disabled=false;
+     var msgs={'auth/user-not-found':'找不到此帳號','auth/wrong-password':'密碼錯誤',
+       'auth/invalid-credential':'帳號或密碼錯誤','auth/email-already-in-use':'此信箱已被使用',
+       'auth/weak-password':'密碼至少需要6個字元','auth/invalid-email':'電子郵件格式錯誤'};
+     errEl.textContent=msgs[e.code]||('錯誤: '+e.message);
+   });
+}
+
+function doLogout(){
+  _fbAuth.signOut().then(function(){
+    document.getElementById('user-menu-modal').style.display='none';
+    showToast('已登出');
+  });
+}
+
+function showUserMenu(){
+  updateUserUI();
+  document.getElementById('user-menu-modal').style.display='block';
+}
+
+/* ── 群組管理 ── */
+function showCreateGroupModal(){
+  document.getElementById('user-menu-modal').style.display='none';
+  document.getElementById('create-group-modal').style.display='flex';
+}
+
+function genInviteCode(){
+  var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var code='';
+  for(var i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+function doCreateGroup(){
+  if(!_currentUser){showToast('請先登入');return;}
+  var name=document.getElementById('new-group-name').value.trim();
+  if(!name){showToast('請輸入群組名稱');return;}
+  var inviteCode=genInviteCode();
+  var groupData={
+    name:name,managerUid:_currentUser.uid,managerName:_userProfile?_userProfile.displayName:'',
+    inviteCode:inviteCode,memberUids:[_currentUser.uid],createdAt:new Date()
+  };
+  _fbDb.collection('groups').add(groupData).then(function(ref){
+    /* 更新使用者角色 */
+    return _fbDb.collection('users').doc(_currentUser.uid).update({role:'manager',groupId:ref.id}).then(function(){
+      _userProfile.role='manager';_userProfile.groupId=ref.id;
+      _userGroup=groupData;_userGroup.id=ref.id;
+      document.getElementById('create-group-modal').style.display='none';
+      updateUserUI();
+      showToast('✅ 群組建立成功！邀請碼：'+inviteCode);
+    });
+  }).catch(function(e){showToast('❌ 建立失敗: '+e.message);});
+}
+
+function joinGroupByCode(){
+  if(!_currentUser){showToast('請先登入');return;}
+  var code=(document.getElementById('invite-code-inp').value||'').trim().toUpperCase();
+  if(code.length<4){showToast('請輸入正確邀請碼');return;}
+  _fbDb.collection('groups').where('inviteCode','==',code).get().then(function(snap){
+    if(snap.empty){showToast('❌ 邀請碼不正確');return;}
+    var doc=snap.docs[0];
+    var groupId=doc.id;
+    return _fbDb.collection('groups').doc(groupId).update({
+      memberUids:firebase.firestore.FieldValue.arrayUnion(_currentUser.uid)
+    }).then(function(){
+      return _fbDb.collection('users').doc(_currentUser.uid).update({groupId:groupId});
+    }).then(function(){
+      _userProfile.groupId=groupId;
+      _userGroup=doc.data();_userGroup.id=groupId;
+      document.getElementById('invite-code-inp').value='';
+      updateUserUI();
+      showToast('✅ 已加入群組：'+(_userGroup.name||''));
+      syncCloudProjectsToLocal();
+    });
+  }).catch(function(e){showToast('❌ 加入失敗: '+e.message);});
+}
+
+function copyInviteCode(){
+  var code=document.getElementById('um-invite-code').textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(code).then(function(){showToast('✅ 邀請碼已複製：'+code);});}
+  else{showToast('邀請碼：'+code);}
+}
+
+/* ── 雲端同步 ── */
+function setSyncStatus(status){
+  var dot=document.getElementById('sync-dot');if(!dot)return;
+  var colors={ok:'#10b981',syncing:'#f59e0b',err:'#ef4444',idle:'#94a3b8'};
+  dot.style.background=colors[status]||colors.idle;
+}
+
+function syncToCloud(draftKey, textData){
+  if(!_currentUser||!_userGroup)return Promise.resolve();
+  setSyncStatus('syncing');
+  var groupId=_userGroup.id;
+  var docId=draftKey.replace(/^cr-d-/,''); /* 去掉前綴，用 ono_date 當 ID */
+  var cloudData=Object.assign({},textData,{
+    savedBy:_currentUser.uid,
+    savedByName:_userProfile?_userProfile.displayName:_currentUser.email,
+    savedAt:new Date(),
+    groupId:groupId
+  });
+  /* 移除照片/附件（不同步到雲端） */
+  delete cloudData.photos;delete cloudData.attachments;delete cloudData.hasPhotos;delete cloudData.hasAttachments;
+  return _fbDb.collection('groups').doc(groupId).collection('reports').doc(docId).set(cloudData,{merge:true})
+    .then(function(){setSyncStatus('ok');})
+    .catch(function(e){setSyncStatus('err');console.error('syncToCloud',e);});
+}
+
+function syncCloudProjectsToLocal(){
+  if(!_currentUser||!_userGroup)return;
+  var groupId=_userGroup.id;
+  _fbDb.collection('groups').doc(groupId).collection('projects').get().then(function(snap){
+    var cloudProjects=[];
+    snap.forEach(function(doc){
+      var d=doc.data();
+      cloudProjects.push({id:doc.id,name:d.name||'',orderNo:d.orderNo||'',startDate:d.startDate||'',endDate:d.endDate||''});
+    });
+    if(cloudProjects.length){
+      /* 合併到本地 projects */
+      cloudProjects.forEach(function(cp){
+        var exists=projects.some(function(p){return p.orderNo===cp.orderNo;});
+        if(!exists)projects.push(cp);
+      });
+      saveProjectsDB();
+      showToast('☁️ 已同步 '+cloudProjects.length+' 個雲端工程');
+    }
+  }).catch(function(e){console.error('syncCloudProjects',e);});
+}
+
+/* 把本地工程推到雲端（管理者用） */
+function pushProjectToCloud(proj){
+  if(!_currentUser||!_userProfile||_userProfile.role!=='manager'||!_userGroup)return;
+  var groupId=_userGroup.id;
+  _fbDb.collection('groups').doc(groupId).collection('projects').doc(proj.id).set({
+    name:proj.name,orderNo:proj.orderNo,startDate:proj.startDate||'',endDate:proj.endDate||'',
+    updatedAt:new Date()
+  },{merge:true}).catch(function(e){console.error('pushProject',e);});
+}
+
+/* 從雲端取指定派任單號的所有歷史累計 */
+function getCloudCumulatives(ono, beforeDate, callback){
+  if(!_currentUser||!_userGroup){callback({});return;}
+  var groupId=_userGroup.id;
+  _fbDb.collection('groups').doc(groupId).collection('reports')
+    .where('ono','==',ono)
+    .get().then(function(snap){
+      var cumMap={},workerMap={};
+      snap.forEach(function(doc){
+        var d=doc.data();
+        if(d.date&&d.date>=beforeDate)return; /* 只算之前的日期 */
+        if(d.mats)d.mats.forEach(function(m){
+          if(!m.name)return;
+          var k=(m.name||'')+'|'+(m.spec||'');
+          cumMap[k]=(cumMap[k]||0)+(parseFloat(m.today)||0);
+        });
+        if(d.workers)d.workers.forEach(function(w){
+          if(!w.vendor&&!w.item)return;
+          var k=(w.vendor||'')+'|'+(w.item||'');
+          if(!workerMap[k])workerMap[k]={vendor:w.vendor||'',item:w.item||'',totalAM:0,totalPM:0,days:0};
+          var am=parseFloat(w.am)||0,pm=parseFloat(w.pm)||0;
+          workerMap[k].totalAM+=am;workerMap[k].totalPM+=pm;
+          if(am>0||pm>0)workerMap[k].days++;
+        });
+      });
+      callback({matCum:cumMap,workerCum:workerMap});
+    }).catch(function(e){console.error('getCloudCumulatives',e);callback({});});
+}
+
+/* 雲端版累計計算 */
+function calcCumulativesCloud(){
+  var curOno=v('ono'),curDate=v('rdate');
+  if(!curOno||!mats.length)return;
+  if(!_currentUser||!_userGroup){calcAllCumulatives();return;}
+  setSyncStatus('syncing');
+  getCloudCumulatives(curOno,curDate,function(result){
+    setSyncStatus('ok');
+    var cumMap=result.matCum||{};
+    mats.forEach(function(m){
+      if(!m.name){m.total='';return;}
+      var k=(m.name||'')+'|'+(m.spec||'');
+      var hist=cumMap[k]||0;
+      m.total=(hist+(parseFloat(m.today)||0))||'';
+    });
+    renderMNoCalc();
+    showToast('☁️ 已從雲端計算累計');
+  });
+}
+
+/* 雲端統計報表 */
+function showCloudStats(){
+  var curOno=v('ono');
+  if(!_currentUser||!_userGroup){showToast('請登入並加入群組');return;}
+  if(!curOno){showToast('請先選擇工程或填入派任單號');return;}
+  document.getElementById('user-menu-modal').style.display='none';
+  setSyncStatus('syncing');
+  var groupId=_userGroup.id;
+  _fbDb.collection('groups').doc(groupId).collection('reports')
+    .where('ono','==',curOno).orderBy('date','asc').get()
+    .then(function(snap){
+      setSyncStatus('ok');
+      var matMap={},workerMap={},equipMap={},dates=[];
+      snap.forEach(function(doc){
+        var d=doc.data();
+        dates.push(d.date);
+        if(d.mats)d.mats.forEach(function(m){
+          if(!m.name)return;
+          var k=(m.name||'')+'|'+(m.spec||'');
+          if(!matMap[k])matMap[k]={name:m.name,spec:m.spec||'',unit:m.unit||'',total:0};
+          matMap[k].total+=(parseFloat(m.today)||0);
+          if(m.unit)matMap[k].unit=m.unit;
+        });
+        if(d.workers)d.workers.forEach(function(w){
+          if(!w.vendor&&!w.item)return;
+          var k=(w.vendor||'')+'|'+(w.item||'');
+          if(!workerMap[k])workerMap[k]={vendor:w.vendor||'',item:w.item||'',totalAM:0,totalPM:0,days:0};
+          var am=parseFloat(w.am)||0,pm=parseFloat(w.pm)||0;
+          workerMap[k].totalAM+=am;workerMap[k].totalPM+=pm;
+          if(am>0||pm>0)workerMap[k].days++;
+        });
+        if(d.equips)d.equips.forEach(function(e2){
+          if(!e2.name)return;
+          var k=(e2.name||'')+'|'+(e2.vendor||'');
+          if(!equipMap[k])equipMap[k]={name:e2.name,vendor:e2.vendor||'',totalAM:0,totalPM:0};
+          equipMap[k].totalAM+=(parseFloat(e2.am)||0);
+          equipMap[k].totalPM+=(parseFloat(e2.pm)||0);
+        });
+      });
+      /* 調用既有的 showProjectStats 但用雲端資料 */
+      _cloudStatsCache={matMap:matMap,workerMap:workerMap,equipMap:equipMap,dates:dates,source:'cloud'};
+      showProjectStats();
+    }).catch(function(e){
+      setSyncStatus('err');
+      showToast('❌ 無法取得雲端資料: '+e.message);
+    });
+}
+
+var _cloudStatsCache=null;
+
+/* 初始化時呼叫 */
+initFirebase();
+
+// PWA Service Worker 註冊
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg) {
+        console.log('[PWA] Service Worker 已註冊:', reg.scope);
+      })
+      .catch(function(err) {
+        console.warn('[PWA] Service Worker 註冊失敗:', err);
+      });
+  });
+}
+
+// iOS 安裝提示（Safari 不會自動顯示安裝提示）
+window.addEventListener('load', function() {
+  var isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  var isStandalone = window.navigator.standalone;
+  var isDismissed = localStorage.getItem('pwa-install-dismissed');
+  
+  if (isIOS && !isStandalone && !isDismissed) {
+    setTimeout(function() {
+      var banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.style.display = 'flex';
+    }, 3000);
+  }
+});
+
+function dismissPWABanner() {
+  localStorage.setItem('pwa-install-dismissed', '1');
+  var banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+}
+</script>
+<!-- PWA 安裝提示 Banner -->
+<div id="pwa-install-banner">
+  <div class="pwa-icon">📲</div>
+  <div class="pwa-text">
+    <strong>加入主畫面，隨時使用！</strong>
+    點 Safari 下方的「分享」→「加入主畫面」即可安裝
+  </div>
+  <button class="pwa-close" onclick="dismissPWABanner()">✕ 知道了</button>
+</div>
+
+
+
+
+<!-- ══════════════════════════════════════════════
+     Firebase 登入 Modal
+══════════════════════════════════════════════ -->
+<div id="login-modal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(8,20,40,.92);overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5)">
+      <div style="background:linear-gradient(135deg,#3d5a80,#2a4060);padding:24px 20px 20px;text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">🏗️</div>
+        <div style="color:#fff;font-size:18px;font-weight:800;letter-spacing:.5px">施工日報表</div>
+        <div style="color:rgba(255,255,255,.7);font-size:12px;margin-top:4px">翔天科技事業股份有限公司</div>
+      </div>
+      <div style="padding:20px">
+        <!-- 登入/註冊切換 -->
+        <div style="display:flex;background:#f0f4f8;border-radius:10px;padding:3px;margin-bottom:18px">
+          <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#3d5a80;box-shadow:0 1px 4px rgba(0,0,0,.12)">登入</button>
+          <button id="tab-reg" onclick="switchAuthTab('reg')" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b">註冊帳號</button>
+        </div>
+        <div class="fld" style="margin-bottom:12px"><label>電子郵件</label><input type="email" id="auth-email" placeholder="your@email.com" autocomplete="email"></div>
+        <div class="fld" style="margin-bottom:12px"><label>密碼</label><input type="password" id="auth-pw" placeholder="至少6位數" autocomplete="current-password"></div>
+        <div id="auth-name-row" class="fld" style="margin-bottom:12px;display:none"><label>姓名（暱稱）</label><input type="text" id="auth-name" placeholder="例：張元"></div>
+        <div id="auth-error" style="color:#dc2626;font-size:12px;min-height:18px;margin-bottom:8px;text-align:center"></div>
+        <button id="auth-submit" onclick="doAuth()" style="width:100%;background:linear-gradient(135deg,#3d5a80,#2a4060);color:#fff;border:none;padding:13px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">登入</button>
+        <div style="text-align:center;margin-top:12px;font-size:11px;color:#94a3b8">版本 2.1 · Firebase 雲端同步</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     使用者選單 Modal
+══════════════════════════════════════════════ -->
+<div id="user-menu-modal" style="display:none;position:fixed;inset:0;z-index:9400;background:rgba(0,0,0,.6)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="position:absolute;top:60px;right:12px;background:#fff;border-radius:14px;width:300px;box-shadow:0 8px 40px rgba(0,0,0,.3);overflow:hidden">
+    <div style="background:linear-gradient(135deg,#3d5a80,#2a4060);padding:16px">
+      <div id="um-name" style="color:#fff;font-size:15px;font-weight:800"></div>
+      <div id="um-email" style="color:rgba(255,255,255,.7);font-size:12px;margin-top:2px"></div>
+      <div id="um-role" style="margin-top:6px"></div>
+      <div id="um-group" style="color:rgba(255,255,255,.6);font-size:11px;margin-top:2px"></div>
+    </div>
+    <div style="padding:12px">
+      <!-- 群組區塊 -->
+      <div id="um-no-group" style="display:none">
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px">尚未加入任何群組</div>
+        <div class="fld" style="margin-bottom:8px"><label>輸入邀請碼加入群組</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="invite-code-inp" placeholder="6位邀請碼" maxlength="8" style="flex:1;text-transform:uppercase;letter-spacing:3px;font-weight:700">
+            <button onclick="joinGroupByCode()" style="background:var(--pri);color:#fff;border:none;padding:8px 12px;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap">加入</button>
+          </div>
+        </div>
+        <div style="text-align:center;color:#94a3b8;font-size:11px;margin:8px 0">或</div>
+        <button onclick="showCreateGroupModal()" style="width:100%;background:#10b981;color:#fff;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">+ 建立新群組（管理者）</button>
+      </div>
+      <div id="um-has-group" style="display:none">
+        <div style="background:#f0f6fc;border-radius:8px;padding:10px;margin-bottom:10px">
+          <div style="font-size:11px;color:#64748b">所屬群組</div>
+          <div id="um-group-name" style="font-size:14px;font-weight:700;color:#2a4060;margin-top:2px"></div>
+          <div id="um-invite-show" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #dde5f0">
+            <div style="font-size:11px;color:#64748b">群組邀請碼（分享給成員）</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+              <div id="um-invite-code" style="font-size:22px;font-weight:900;letter-spacing:6px;color:#3d5a80;font-family:monospace"></div>
+              <button onclick="copyInviteCode()" style="background:#3d5a80;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer">複製</button>
+            </div>
+          </div>
+        </div>
+        <button onclick="showCloudStats()" style="width:100%;background:#3d5a80;color:#fff;border:none;padding:9px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;margin-bottom:6px">📊 雲端累計統計</button>
+      </div>
+      <hr style="border:none;border-top:1px solid #eef2f8;margin:10px 0">
+      <button onclick="doLogout()" style="width:100%;background:#fee2e2;color:#dc2626;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">登出</button>
+    </div>
+  </div>
+</div>
+
+<!-- 建立群組 Modal -->
+<div id="create-group-modal" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:14px;width:90%;max-width:340px;padding:20px;box-shadow:0 8px 40px rgba(0,0,0,.4)">
+    <div style="font-size:15px;font-weight:800;color:#2a4060;margin-bottom:14px">🏢 建立群組</div>
+    <div class="fld" style="margin-bottom:14px"><label>群組名稱</label><input type="text" id="new-group-name" placeholder="例：翔天科技工程隊A"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="doCreateGroup()" style="flex:1;background:#3d5a80;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;cursor:pointer">建立</button>
+      <button onclick="document.getElementById('create-group-modal').style.display='none'" style="flex:1;background:#f0f4f8;color:#64748b;border:none;padding:11px;border-radius:8px;font-weight:700;cursor:pointer">取消</button>
+    </div>
+  </div>
+</div>
+
+<div id="mac-pdf-menu" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;"><div style="background:#fff;border-radius:16px;padding:24px;width:330px;box-shadow:0 20px 60px rgba(0,0,0,.35);"><div style="font-size:16px;font-weight:700;color:#0d2035;margin-bottom:4px;">📄 PDF 輸出</div><div id="mac-pdf-filename" style="font-size:12px;color:#6b7a88;margin-bottom:18px;word-break:break-all;"></div><button onclick="macSavePDF()" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#a88520,#c9a227);width:100%;cursor:pointer;font-size:14px;font-weight:700;margin-bottom:8px;color:#fff;text-align:left;"><span>💾</span><div><div>選擇儲存位置</div><div style="font-size:11px;opacity:.85;font-weight:400">開啟存檔對話框</div></div></button><button onclick="macDownloadPDF()" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;border:1.5px solid #d0d8dc;background:#fff;width:100%;cursor:pointer;font-size:14px;font-weight:700;margin-bottom:8px;color:#0d2035;text-align:left;"><span>⬇️</span><div><div>直接下載</div><div style="font-size:11px;color:#6b7a88;font-weight:400">存至下載資料夾</div></div></button><button onclick="macPrintPDF()" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;border:1.5px solid #d0d8dc;background:#fff;width:100%;cursor:pointer;font-size:14px;font-weight:700;margin-bottom:8px;color:#0d2035;text-align:left;"><span>🖨️</span><div><div>列印</div><div style="font-size:11px;color:#6b7a88;font-weight:400">開啟列印對話框</div></div></button><div onclick="closeMacMenu()" style="text-align:center;margin-top:8px;color:#6b7a88;font-size:13px;cursor:pointer;padding:8px;">取消</div></div></div></body>
+</html>
