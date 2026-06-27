@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="日報表">
+<meta name="theme-color" content="#0e6060">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="pwa/icon-152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="pwa/icon-192.png">
+<link rel="apple-touch-startup-image" href="pwa/icon-512.png">
+<title>施工日報表</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  /* ── 翔天海報多色系 ── */
+  /* 主調：深海軍藍-青色 */
+  --pri:#0d4a5e;       /* 深青藍（海報主色）*/
+  --pri-d:#081e2a;     /* 深夜藍 */
+  --pri-l:#1a7080;     /* 亮青 */
+  /* 強調色：海報橙/金/紅 */
+  --acc:#c9612a;       /* 橙色（海報橙）*/
+  --acc2:#8b2a2a;      /* 深紅（海報紅）*/
+  --acc3:#c9a227;      /* 金黃（名片金）*/
+  --acc4:#4a7a3a;      /* 草綠（海報綠）*/
+  /* 功能色 */
+  --ok:#2a7a4a;
+  --danger:#8b1a1a;
+  /* 中性色（帶藍調）*/
+  --g50:#f4f6f8;--g100:#e8ecf0;--g200:#ccd4dc;--g300:#a0aab8;
+  --g400:#6a7a88;--g500:#485a68;--g600:#2e3e4a;--g700:#1a2830;--g800:#0c1418;
+  --r:12px;
+  --sh:0 3px 16px rgba(8,30,42,.18);
+}
+body{font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  background:var(--g100);color:var(--g800);min-height:100vh;}
+.topbar{background:linear-gradient(150deg,#081e2a 0%,#0d3a50 18%,#0d4a5e 38%,#0e5c50 55%,#1a4a2a 72%,#2e2010 88%,#3a1a10 100%);color:#fff;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(8,30,42,.5);}
+.topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;}
+.topbar h1{font-size:17px;font-weight:700;}
+.co-nm{font-size:11px;opacity:.8;}
+.tbtns{display:flex;gap:8px;}
+.tbtn{border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 12px;border-radius:20px;font-size:13px;cursor:pointer;font-weight:600;background:rgba(255,255,255,.15);}
+.tbtn.pdf{background:var(--acc);border-color:var(--acc);color:#1f2937;font-size:13px;padding:7px 14px;font-weight:700;}
+.tab-nav{display:flex;background:#fff;border-bottom:2px solid var(--g200);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{flex:none;padding:10px 14px;font-size:13px;font-weight:600;color:var(--g500);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;}
+.tab-btn.active{color:var(--pri);border-bottom-color:var(--acc);font-weight:700;}
+.main{padding:14px;max-width:720px;margin:0 auto;}
+.sec{display:none;}.sec.active{display:block;}
+.card{background:#fff;border-radius:var(--r);box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:14px;overflow:hidden;}
+.chd{background:linear-gradient(135deg,var(--pri),var(--pri-d));color:#fff;padding:11px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.cbd{padding:14px;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fg1{grid-template-columns:1fr;}
+.fld{display:flex;flex-direction:column;gap:4px;}
+label{font-size:11px;font-weight:600;color:var(--g600);}
+input,select,textarea{width:100%;padding:9px 11px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;color:var(--g800);background:#f9fafb;font-family:inherit;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(26,86,219,.1);background:#fff;}
+textarea{resize:vertical;min-height:80px;line-height:1.5;}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:6px 12px;border-radius:20px;border:1.5px solid var(--g200);font-size:13px;cursor:pointer;background:#fff;user-select:none;}
+.chip.s-ok{border-color:var(--ok);background:var(--ok);color:#fff;}
+.chip.s-bh{border-color:var(--danger);background:var(--danger);color:#fff;}
+.chip.s-ah{border-color:var(--pri);background:var(--pri);color:#fff;}
+.chip.s-sun{border-color:var(--acc);background:var(--acc);color:#1f2937;}
+.chip.s-cld{border-color:#8b5cf6;background:#8b5cf6;color:#fff;}
+.chip.s-ran{border-color:#3b82f6;background:#3b82f6;color:#fff;}
+.sbar{display:flex;gap:10px;margin-bottom:14px;}
+.si{flex:1;background:#fff;border-radius:10px;padding:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center;}
+.sn{font-size:20px;font-weight:800;color:var(--pri);}
+.sl{font-size:10px;color:var(--g500);margin-top:1px;}
+.dtw{overflow-x:auto;}
+.dt{width:100%;border-collapse:collapse;font-size:12px;min-width:500px;}
+.dt th{background:var(--g100);color:var(--g600);font-weight:700;padding:6px 4px;text-align:center;border:1px solid var(--g200);font-size:11px;white-space:nowrap;}
+.dt td{border:1px solid var(--g200);padding:2px;}
+.dt td input,.dt td select{border:none;background:transparent;padding:4px;font-size:12px;border-radius:3px;min-width:0;}
+.dt td input:focus,.dt td select:focus{background:rgba(26,86,219,.05);}
+.nc{width:24px;text-align:center;color:var(--g500);font-size:11px;}
+.dc{width:26px;text-align:center;}
+.dbtn{background:none;border:none;color:var(--danger);font-size:15px;cursor:pointer;padding:2px 3px;}
+.addbtn{display:flex;align-items:center;gap:6px;padding:9px 14px;background:#f9fafb;border:1.5px dashed var(--g300);border-radius:8px;color:var(--g500);font-size:12px;font-weight:600;cursor:pointer;width:100%;justify-content:center;margin-top:7px;}
+.addbtn:hover{border-color:var(--pri);color:var(--pri);}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pslot{border:2px dashed var(--g300);border-radius:var(--r);overflow:hidden;background:#f9fafb;position:relative;cursor:pointer;}
+.pslot.hi{border-style:solid;border-color:var(--g200);}
+.pimgw{aspect-ratio:4/3;overflow:hidden;}
+.pimgw img{width:100%;height:100%;object-fit:cover;display:block;}
+.pph{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:4/3;color:var(--g500);gap:5px;font-size:12px;}
+.pph .ico{font-size:26px;}
+.pcap{background:rgba(0,0,0,.5);padding:4px 8px;}
+.pcap input{background:transparent;border:none;color:#fff;font-size:12px;width:100%;padding:0;}
+.pcap input::placeholder{color:rgba(255,255,255,.6);}
+.prmb{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.45);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;}
+.pslot.hi .prmb{display:flex;}
+.apbtn{border:2px dashed var(--g300);border-radius:var(--r);background:#f9fafb;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--g500);font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:10px;}
+.apbtn:hover{border-color:var(--pri);color:var(--pri);}
+.botbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--g200);padding:10px 16px;display:flex;gap:10px;z-index:50;box-shadow:0 -4px 12px rgba(0,0,0,.06);}
+.botbar button{flex:1;padding:11px;border-radius:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;}
+.bsave{background:var(--g100);color:var(--g700);}
+.bprev{background:var(--pri);color:#fff;}
+/* Preview modal */
+#pvmod{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);overflow-y:auto;}
+#pvmod.show{display:block;}
+.pvtop{position:sticky;top:0;background:#1f2937;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
+.pvtop h2{font-size:15px;font-weight:700;}
+.pvtop-btns{display:flex;gap:8px;}
+.pvbtn{border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;}
+.pvbtn.close{background:rgba(255,255,255,.15);color:#fff;}
+.pvbtn.go{background:var(--acc);color:#1f2937;}
+.pv-body{padding:12px;}
+.pv-page{background:#fff;margin:0 auto 16px;padding:14px 16px;border-radius:8px;max-width:700px;font-family:"PingFang TC","Microsoft JhengHei",sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.15);}
+.pv-page table{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:0;}
+.pv-page table td,.pv-page table th{border:.5pt solid #000;padding:.5pt 2pt;vertical-align:middle;text-align:center;font-size:7pt;line-height:1.2;}
+.pv-page table th{font-weight:bold;}
+.pv-page .bl{background:#92CDDC;}
+.pv-page .tl{text-align:left!important;}
+.pv-page .pt+.pt tr:first-child td,.pv-page .pt+.pt tr:first-child th{border-top:none!important;}
+.pv-badge{display:inline-block;background:#1a56db;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:8px;}
+.bpdf{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;flex:2;font-size:14px;}
+.sb{height:70px;}
+#toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--g800);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:all .3s;z-index:999;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@media (max-width:480px){.fg{grid-template-columns:1fr;}.sn{font-size:17px;}}
+
+/* PWA 安裝提示 */
+#pwa-install-banner{
+  display:none;position:fixed;bottom:80px;left:12px;right:12px;z-index:300;
+  background:#1f2937;color:#fff;border-radius:12px;padding:12px 14px;
+  align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+#pwa-install-banner .pwa-icon{font-size:24px;flex-shrink:0;}
+#pwa-install-banner .pwa-text{flex:1;font-size:12px;line-height:1.5;}
+#pwa-install-banner .pwa-text strong{display:block;font-size:13px;margin-bottom:2px;}
+#pwa-install-banner .pwa-close{background:rgba(255,255,255,.15);border:none;color:#fff;
+  padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;}
+
+/* ── 工程管理 ── */
+.proj-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--g200);background:#fff;}
+.proj-item:last-child{border-bottom:none;}
+.proj-item-info{flex:1;min-width:0;}
+.proj-item-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.proj-item-sub{font-size:12px;color:var(--g500);margin-top:2px;}
+.proj-item-btns{display:flex;gap:6px;flex-shrink:0;}
+.admin-form-card{background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:var(--r);padding:14px;margin-bottom:14px;}
+.admin-section{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden;}
+.admin-section-hd{background:linear-gradient(135deg,#374151,#1f2937);color:#fff;padding:11px 14px;font-size:13px;font-weight:700;}
+.admin-pin-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:14px;}
+.pin-input{text-align:center;font-size:20px;letter-spacing:6px;width:150px;padding:12px;}
+.proj-empty{text-align:center;color:var(--g400);padding:24px;font-size:13px;}
+.sel-note{font-size:11px;color:var(--g500);margin-top:3px;}
+
+#draft-modal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);overflow-y:auto;}
+#draft-modal.show{display:block;}
+.draft-top{position:sticky;top:0;background:#1f2937;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
+.draft-top h2{font-size:15px;font-weight:700;}
+.draft-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--g200);background:#fff;}
+.draft-item:last-child{border-bottom:none;}
+.draft-item-info{flex:1;min-width:0;}
+.draft-item-ono{font-weight:700;font-size:14px;}
+.draft-item-sub{font-size:11px;color:var(--g500);margin-top:2px;}
+.draft-banner{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+
+/* ─ 上方動作列 ─ */
+.action-bar{display:flex;background:var(--pri-d);padding:5px 8px;gap:4px;}
+.action-bar button{flex:1;min-width:0;padding:7px 2px;background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;
+  font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;}
+.action-bar .btn-new{background:rgba(16,185,129,.35);border-color:rgba(16,185,129,.6);}
+.action-bar .btn-pdf{background:var(--acc);border-color:var(--acc);color:#1f2937;}
+/* 移除底部列 */
+.botbar{display:none!important;}
+.sb{height:8px!important;}
+
+/* ── 翔天品牌樣式 ── */
+.xt-logo-mark{display:flex;align-items:center;gap:0;}
+.topbar-brand{display:flex;align-items:center;gap:10px;}
+.topbar h1{font-size:17px;font-weight:700;letter-spacing:.5px;}
+.co-nm{font-size:10px;opacity:.75;letter-spacing:.3px;}
+/* 進度選單 - 品牌色 */
+.pc.s-ok{border-color:var(--pri);background:var(--pri);color:#fff;}
+.pc.s-bh{border-color:#c0362d;background:#c0362d;color:#fff;}
+.pc.s-ah{border-color:var(--acc);background:var(--acc);color:#0a2020;}
+/* 天氣選單 */
+.wc.s-sun{border-color:var(--acc);background:linear-gradient(135deg,#a88520,#c9a227);color:#0a2020;}
+.wc.s-cld{border-color:#4a7070;background:#4a7070;color:#fff;}
+.wc.s-ran{border-color:var(--pri);background:var(--pri);color:#fff;}
+/* 儲存按鈕 */
+.bsave{background:var(--g100);color:var(--pri-d);border:1.5px solid var(--g200);font-weight:600;}
+.bsave:hover{background:var(--g200);}
+/* 草稿按鈕 */
+.bsave[onclick*="Draft"]{background:var(--pri);color:#fff;border-color:var(--pri);}
+/* 統計數字 */
+.sn{font-size:20px;font-weight:800;color:var(--pri);}
+/* 卡片邊框加青色調 */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden;border:1px solid rgba(14,96,96,.08);}
+/* input focus 改青色 */
+input:focus,select:focus,textarea:focus{border-color:var(--pri)!important;box-shadow:0 0 0 3px rgba(14,96,96,.15)!important;}
+/* 管理員 section 風格 */
+.admin-section-hd{background:linear-gradient(135deg,#0a4545,#0e6060);}
+/* 草稿 modal 頭部 */
+.draft-top{background:linear-gradient(135deg,#0a4545,#0e6060);}
+/* 預覽 modal 頭部 */
+.pvtop{background:linear-gradient(135deg,#0a4545,#0e6060);}
+/* PDF overlay 頭部 */
+#pdf-ov .pvtop, .pdf-top{background:linear-gradient(135deg,#0a4545,#0e6060);}
+/* tab nav 底部裝飾 */
+.tab-nav{border-bottom-color:var(--g200);}
+/* 底部按鈕列 */
+.botbar{background:rgba(255,255,255,.97);backdrop-filter:blur(8px);}
+/* 工程資訊提示色 */
+.sel-note{color:var(--pri-l);}
+/* 草稿 banner */
+.draft-banner{background:linear-gradient(135deg,rgba(14,96,96,.06),rgba(201,162,39,.08));border-color:rgba(14,96,96,.2);}
+
+
+/* ── 海報多色風格補充 ── */
+
+/* Topbar 標題強調 */
+.topbar h1{font-size:17px;font-weight:800;letter-spacing:.8px;
+  text-shadow:0 1px 4px rgba(0,0,0,.4);}
+.co-nm{font-size:10px;opacity:.75;letter-spacing:.5px;font-weight:500;}
+
+/* Tab 頁籤 */
+.tab-nav{border-bottom:2px solid rgba(13,74,94,.15);}
+.tab-btn.active{color:var(--pri);border-bottom-color:var(--acc);font-weight:700;}
+
+/* 卡片 - 增加立體感 */
+.card{background:#fff;border-radius:var(--r);
+  box-shadow:0 2px 8px rgba(8,30,42,.08),0 6px 24px rgba(8,30,42,.06);
+  margin-bottom:14px;overflow:hidden;
+  border:1px solid rgba(13,74,94,.08);}
+
+/* 卡片頭部文字 */
+.chd{color:#fff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.3);}
+
+/* 進度按鈕 - 海報色 */
+.pc.s-ok{border-color:var(--pri);background:linear-gradient(135deg,#0a3a4e,#0d4a5e);color:#fff;}
+.pc.s-bh{border-color:var(--acc2);background:linear-gradient(135deg,#5a1a1a,#8b2a2a);color:#fff;}
+.pc.s-ah{border-color:var(--acc);background:linear-gradient(135deg,#8b3a10,#c9612a);color:#fff;}
+
+/* 天氣按鈕 */
+.wc.s-sun{border-color:#a88020;background:linear-gradient(135deg,#6a4a10,#c9a227);color:#fff;}
+.wc.s-cld{border-color:#4a5a68;background:linear-gradient(135deg,#2e3a48,#4a5a68);color:#fff;}
+.wc.s-ran{border-color:#0d3a50;background:linear-gradient(135deg,#081e2a,#0d4a5e);color:#fff;}
+
+/* 統計數字 */
+.sn{font-size:22px;font-weight:900;color:var(--pri);letter-spacing:-1px;}
+
+/* Bottom bar */
+.botbar{background:rgba(248,250,252,.97);backdrop-filter:blur(10px);
+  border-top:2px solid rgba(13,74,94,.1);}
+.bsave{background:var(--g100);color:var(--g600);border:1.5px solid var(--g200);}
+
+/* PDF 按鈕 - 橙金色（行動呼籲）*/
+.bpdf{background:linear-gradient(135deg,#7a2a08,#c9612a,#d4803a);
+  color:#fff;font-weight:800;letter-spacing:.3px;
+  box-shadow:0 3px 12px rgba(201,97,42,.4);}
+
+/* Draft 按鈕 */
+.bsave[onclick*="Modal"]{background:linear-gradient(135deg,#0a2535,#0d4a5e);color:#fff;border-color:transparent;}
+
+/* Input focus */
+input:focus,select:focus,textarea:focus{
+  border-color:var(--pri)!important;
+  box-shadow:0 0 0 3px rgba(13,74,94,.15)!important;}
+
+/* Draft banner */
+.draft-banner{
+  background:linear-gradient(135deg,rgba(13,74,94,.06),rgba(201,97,42,.06));
+  border:1px solid rgba(13,74,94,.18);}
+.draft-banner .draft-banner-label{color:var(--pri);}
+.draft-banner-val{color:var(--acc)!important;}
+
+/* 管理員區塊 */
+.admin-section-hd{
+  background:linear-gradient(135deg,#081e2a 0%,#0d3a50 55%,#c9612a 100%);}
+.draft-top{background:linear-gradient(135deg,#081e2a,#0d4a5e);}
+.pvtop{background:linear-gradient(135deg,#081e2a,#0d4a5e);}
+
+/* 工程設定項目 */
+.proj-item{background:#fff;}
+.proj-item:hover{background:var(--g50);}
+
+/* Add btn */
+.addbtn:hover{border-color:var(--pri);color:var(--pri);}
+.apbtn:hover{border-color:var(--acc);color:var(--acc);}
+
+/* 選擇框 focus */
+.chip.s-ok{border-color:var(--pri);}
+
+
+/* Mac PDF 操作選單 */
+var _macPDF=null,_macPDFBlob=null,_macPDFFilename='';
+function showMacPDFMenu(pdf,blob,filename){
+  _macPDF=pdf;_macPDFBlob=blob;_macPDFFilename=filename;
+  var el=document.getElementById('mac-pdf-filename');
+  if(el)el.textContent=filename;
+  var menu=document.getElementById('mac-pdf-menu');
+  if(menu)menu.classList.add('show');
+}
+function closeMacMenu(){
+  var menu=document.getElementById('mac-pdf-menu');
+  if(menu)menu.classList.remove('show');
+  _macPDF=null;_macPDFBlob=null;
+}
+function macSavePDF(){
+  /* File System Access API - 讓使用者選擇儲存路徑 */
+  if(!_macPDF){closeMacMenu();return;}
+  if(typeof showSaveFilePicker!=='undefined'){
+    showSaveFilePicker({
+      suggestedName:_macPDFFilename,
+      types:[{description:'PDF \u6587\u4ef6',accept:{'application/pdf':['.pdf']}}]
+    }).then(function(fh){return fh.createWritable();})
+      .then(function(w){return w.write(_macPDFBlob).then(function(){return w.close();});})
+      .then(function(){showToast('\u2705 PDF \u5df2\u5132\u5b58\uff01');closeMacMenu();})
+      .catch(function(e){
+        if(e.name!=='AbortError'){_macPDF.save(_macPDFFilename);showToast('\u2705 PDF \u5df2\u4e0b\u8f09\uff01');}
+        closeMacMenu();
+      });
+  } else {
+    _macPDF.save(_macPDFFilename);
+    showToast('\u2705 PDF \u5df2\u4e0b\u8f09\u5230\u4e0b\u8f09\u8cc7\u6599\u593e');
+    closeMacMenu();
+  }
+}
+function macDownloadPDF(){
+  if(_macPDF){_macPDF.save(_macPDFFilename);showToast('\u2705 PDF \u5df2\u4e0b\u8f09\uff01');}
+  closeMacMenu();
+}
+function macPrintPDF(){
+  if(!_macPDF){closeMacMenu();return;}
+  var url=URL.createObjectURL(_macPDFBlob);
+  var win=window.open(url,'_blank');
+  if(win){win.addEventListener('load',function(){setTimeout(function(){win.print();},500);});}
+  else{_macPDF.save(_macPDFFilename);}
+  closeMacMenu();showToast('\u2705 \u958b\u555f\u5217\u5370\u5c0d\u8a71\u6846');
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+/* 日期格式化：2026-06-26 → 2026/6/26 */
+function fmtDate(d){
+  if(!d)return '';
+  var p=d.split('-');
+  if(p.length!==3)return d;
+  return p[0]+'/'+parseInt(p[1])+'/'+parseInt(p[2]);
+}
+
+/* 填寫人 → 自動同步填表（若填表尚未手動修改）*/
+function syncFiller(val){
+  var sfEl=document.getElementById('sfil');
+  if(!sfEl)return;
+  var cur=sfEl.value;
+  var prev=sfEl.dataset.prevRep||'';
+  if(!cur||cur===prev){sfEl.value=val;}
+  sfEl.dataset.prevRep=val;
+}
+
+/* ═══════════════════════════════════════════════════
+   PDF 生成 - 精確複製原始Excel PDF格式
+   藍色: #92CDDC | 字型: Microsoft JhengHei/PingFang TC
+   頁邊距: 上19mm 右7mm 下42mm 左6mm
+═══════════════════════════════════════════════════ */
+/* ── 預覽 ── */
+function showPreview(){
+  var html=buildPrintHTML();
+  var pv=document.getElementById('pv-content');
+  pv.innerHTML='';
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var ifr=document.createElement('iframe');
+  ifr.style.cssText='border:none;display:block;background:#fff;width:794px;height:1050px;';
+  ifr.src=url;
+  ifr.onload=function(){URL.revokeObjectURL(url);};
+  var sc=Math.min((window.innerWidth-32)/794,1);
+  ifr.style.transformOrigin='top left';
+  ifr.style.transform='scale('+sc+')';
+  pv.style.cssText='overflow:hidden;background:#555;padding:16px;height:'+(1050*sc+32)+'px;';
+  pv.appendChild(ifr);
+  document.getElementById('pvmod').classList.add('show');
+}
+
+
+function closePv(){
+  document.getElementById('pvmod').classList.remove('show');
+}
+function buildPreviewHTML(){
+  var co=v('co')||'翔天科技事業股份有限公司';
+  var proj=v('proj')||''; var sd=fmtDate(v('sdate')); var ed=fmtDate(v('edate'));
+  var rem=v('rem')||''; var rep=v('rep')||''; var rd=fmtDate(v('rdate'));
+  var ono=v('ono')||''; var pg=v('prog')||'';
+  var wa=v('wam')||''; var wp=v('wpm')||'';
+  var ab=v('abn')||''; var imp2=v('imp')||'';
+  var sc2=v('sc')||''; var smgr2=v('smgr')||'';
+  var srev2=v('srev')||''; var sfil2=v('sfil')||v('rep')||'';
+  /* 工作人員預覽列 */
+  var wR='';
+  for(var i=0;i<workers.length;i++){
+    var w=workers[i]||{};
+    if(!w.type&&!w.item&&!w.cnt)continue;
+    wR+='<tr><td class="bl">'+(i+1)+'</td><td>'+esc(w.prog)+'</td><td>'+esc(w.type)+'</td>'+'<td class="tl">'+esc(w.item)+'</td><td>'+esc(w.vendor)+'</td>'+'<td>'+(w.am||'')+'</td><td>'+(w.pm||'')+'</td>'+'<td>'+(w.tin||'')+'</td><td>'+(w.tout||'')+'</td>'+'<td class="tl">'+esc(w.cnt)+'</td></tr>';
+  }
+  if(!wR)wR='<tr><td colspan="10" style="color:#aaa;font-style:italic">（尚未填寫工作項目）</td></tr>';
+  /* 材料預覽列 */
+  var mR='';
+  for(var i=0;i<mats.length;i++){
+    var m=mats[i]||{};
+    if(!m.name)continue;
+    mR+='<tr><td class="bl">'+(i+1)+'</td><td class="tl">'+esc(m.name)+'</td><td>'+esc(m.spec)+'</td><td>'+(m.today||'')+'</td><td>'+(m.total||'')+'</td><td>'+esc(m.unit)+'</td><td class="tl">'+esc(m.note)+'</td></tr>';
+  }
+  if(!mR)mR='<tr><td colspan="7" style="color:#aaa;font-style:italic">（尚未填寫材料）</td></tr>';
+  /* 機具預覽列 */
+  var eR='';
+  for(var i=0;i<equips.length;i++){
+    var e=equips[i]||{};
+    if(!e.name)continue;
+    eR+='<tr><td class="bl">'+(i+1)+'</td><td class="tl">'+esc(e.name)+'</td><td>'+esc(e.vendor)+'</td><td>'+(e.am||'')+'</td><td>'+(e.pm||'')+'</td><td class="tl">'+esc(e.cnt)+'</td></tr>';
+  }
+  if(!eR)eR='<tr><td colspan="6" style="color:#aaa;font-style:italic">（尚未填寫機具）</td></tr>';
+  /* 照片預覽 */
+  var phR='';
+  var pw=photos.filter(function(p){return p.src;});
+  if(pw.length>0){
+    for(var i=0;i<pw.length;i+=2){
+      var L=pw[i]; var R=pw[i+1]||null;
+      phR+='<tr>'+'<td style="padding:4px;border:.5pt solid #000"><div style="font-size:8pt;font-weight:bold;margin-bottom:3px">'+esc(L.cap)+'</div><img src="'+L.src+'" style="width:100%;max-height:80px;object-fit:cover;display:block"></td>'+'<td style="padding:4px;border:.5pt solid #000">'+(R?'<div style="font-size:8pt;font-weight:bold;margin-bottom:3px">'+esc(R.cap)+'</div><img src="'+R.src+'" style="width:100%;max-height:80px;object-fit:cover;display:block">':'')+'</td>'+'</tr>';
+    }
+  }
+  var hasPhotos=pw.length>0;
+  return '<div class="pv-page">'+
+    '<div class="pv-badge">📋 第1頁 — 日報表</div>'+
+    '<table class="pt" style="font-size:8pt">'+
+      '<tr><td colspan="10" class="bl" style="text-align:center;font-size:10pt;font-weight:bold;padding:3pt">'+esc(co)+'</td></tr>'+
+      '<tr><td colspan="10" class="bl" style="text-align:center;font-size:9pt;font-weight:bold;padding:2pt">施工日報表</td></tr>'+
+      '<tr>'+
+        '<th class="bl" colspan="2">日期</th><td colspan="2" class="bl">'+rd+'</td>'+
+        '<th class="bl">派任單號</th><td class="bl">'+esc(ono)+'</td>'+
+        '<th class="bl">工進</th><td class="bl">'+esc(pg)+'</td>'+
+        '<th class="bl">天氣</th><td class="bl">上午'+esc(wa)+' 下午'+esc(wp)+'</td>'+
+      '</tr>'+
+      '<tr><td colspan="8" class="bl tl" style="font-weight:bold">'+esc(proj)+'</td><th class="bl" colspan="2">填寫人：'+esc(rep)+'</th></tr>'+
+      '<tr>'+
+        '<th class="bl" colspan="2">開工日</th><td colspan="2" class="bl">'+sd+'</td>'+
+        '<th class="bl" colspan="2">完工日</th><td colspan="2" class="bl">'+ed+'</td>'+
+        '<th class="bl">剩餘天數</th><td class="bl">'+rem+'</td>'+
+      '</tr>'+
+    '</table>'+
+    '<table class="pt" style="margin-top:-1px">'+
+      '<tr><td colspan="10" class="bl" style="font-weight:bold;text-align:center;padding:2pt">每日工作人員及工作摘要</td></tr>'+
+      '<tr>'+
+        '<th class="bl">項次</th><th class="bl">進度</th><th class="bl">工程種類</th><th class="bl">工程項目</th>'+
+        '<th class="bl">廠商</th><th class="bl">上午</th><th class="bl">下午</th>'+
+        '<th class="bl">進場</th><th class="bl">離場</th><th class="bl">本日施作內容</th>'+
+      '</tr>'+
+      wR+
+    '</table>'+
+    '<table class="pt" style="margin-top:-1px">'+
+      '<tr><td class="bl" style="font-weight:bold">項次</td><td colspan="6" class="bl" style="font-weight:bold;text-align:center">材料進場數量統計表</td></tr>'+
+      '<tr><th class="bl"></th><th class="bl">材料</th><th class="bl">規格</th><th class="bl">本日進料</th><th class="bl">累計</th><th class="bl">單位</th><th class="bl">備註</th></tr>'+
+      mR+
+    '</table>'+
+    '<table class="pt" style="margin-top:-1px">'+
+      '<tr><td class="bl" style="font-weight:bold">項次</td><td colspan="5" class="bl" style="font-weight:bold;text-align:center">機具進場數量統計表</td></tr>'+
+      '<tr><th class="bl"></th><th class="bl">機具</th><th class="bl">廠商</th><th class="bl">上午</th><th class="bl">下午</th><th class="bl">工作內容</th></tr>'+
+      eR+
+    '</table>'+
+    '<table class="pt" style="margin-top:-1px">'+
+      '<tr>'+
+        '<td colspan="5" class="bl" style="font-weight:bold;text-align:left;padding-left:3pt">異常事項<br><span style="font-weight:normal;white-space:pre-wrap">'+esc(ab)+'</span></td>'+
+        '<td colspan="5" class="bl" style="font-weight:bold;text-align:left;padding-left:3pt">重要事項：<br><span style="font-weight:normal;white-space:pre-wrap">'+esc(imp2)+'</span></td>'+
+      '</tr>'+
+      '<tr>'+
+        '<td colspan="3" class="tl" style="padding-left:3pt">會辦單位：'+esc(sc2)+'</td>'+
+        '<td colspan="2" class="tl">主管：'+esc(smgr2)+'</td>'+
+        '<td colspan="2" class="tl">校閱：'+esc(srev2)+'</td>'+
+        '<td colspan="3" class="tl">填表：'+esc(sfil2)+'</td>'+
+      '</tr>'+
+    '</table>'+
+    '</div>'+
+    (hasPhotos?
+      '<div class="pv-page">'+
+        '<div class="pv-badge">📷 第2頁+ — 施工照片（共'+pw.length+'張）</div>'+
+        '<div style="text-align:center;background:#92CDDC;padding:6px;font-weight:bold;font-size:9pt;margin-bottom:4px">施工現場照片記錄</div>'+
+        '<table style="width:100%;border-collapse:collapse">'+phR+'</table>'+
+      '</div>'
+    :'<div class="pv-page" style="text-align:center;color:#aaa;padding:20px">📷 尚未上傳照片</div>');
+}
+
+/* ════════════════════════════════════════════════════
+   PDF 生成（html2canvas + jsPDF + Web Share API）
+   完全跳過列印對話框，直接產生可分享的 PDF 檔案
+════════════════════════════════════════════════════ */
+function doPDF(){
+  if(typeof html2canvas==='undefined'||typeof jspdf==='undefined'){
+    showToast('\u2935\ufe0f \u8f09\u5165\u4e2d\uff0c\u8acb\u7a0d\u5019\u518d\u8a66...');
+    setTimeout(doPDF,2000);return;
+  }
+  saveLocal();
+
+  /* Loading overlay */
+  var oldOv=document.getElementById('pdf-ov');if(oldOv)oldOv.remove();
+  var loadOv=document.createElement('div');
+  loadOv.id='pdf-ov';
+  loadOv.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(8,30,42,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+  loadOv.innerHTML=
+    '<div style="width:56px;height:56px;border:4px solid rgba(255,255,255,.2);border-top-color:#c9a227;border-radius:50%;animation:spin 1s linear infinite"></div>'+
+    '<div style="color:#fff;font-size:16px;font-weight:700">\u6b63\u5728\u751f\u6210 PDF\u2026</div>'+
+    '<div style="color:rgba(255,255,255,.6);font-size:12px">\u8acb\u7a0d\u5019\uff0c\u52ff\u95dc\u9589\u6b64\u9801\u9762</div>'+
+    '<style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+  document.body.appendChild(loadOv);
+
+  /* 建立渲染容器 */
+  var html=buildPrintHTML();
+  var cssMatch=html.match(/<style>([\s\S]*?)<\/style>/);
+  var rawCSS=cssMatch?cssMatch[1]:'';
+  var cleanCSS=rawCSS
+    .replace(/@page\s*\{[^}]*\}/g,'')
+    .replace(/@media\s+print\s*\{[\s\S]*?\}\s*\}/g,'')
+    .replace(/page-break-[^:]+:[^;]+;/gi,'')
+    .replace(/-webkit-print-color-adjust\s*:[^;]+;/g,'')
+    .replace(/print-color-adjust\s*:[^;]+;/g,'');
+
+  var bodyMatch=html.match(/<body>([\s\S]*?)<\/body>/);
+  var bodyHTML=bodyMatch?bodyMatch[1]:'';
+
+  var container=document.createElement('div');
+  container.style.cssText='position:fixed;left:-200%;top:0;width:794px;background:#fff;z-index:-9999;';
+
+  var styleEl=document.createElement('style');
+  styleEl.textContent=
+    '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}'+
+    cleanCSS+
+    /* 修正1：.pg 每頁獨立，確保不超出 A4 */
+    '.pg{width:794px;padding:19mm 7mm 19mm 6mm;box-sizing:border-box;overflow:hidden;}'+
+    /* 修正2：改用 border-collapse:collapse + 1.5px，html2canvas 渲染更穩定 */
+    '.pt{border-collapse:collapse!important;}'+
+    '.pt td,.pt th{border:1.5px solid #444!important;box-sizing:border-box!important;}'+
+    /* 保持相鄰表格的頂部邊線消除 */
+    '.pt+.pt tr:first-child td,.pt+.pt tr:first-child th{border-top:none!important;}';
+  container.appendChild(styleEl);
+
+  var contentEl=document.createElement('div');
+  contentEl.innerHTML=bodyHTML;
+  container.appendChild(contentEl);
+  document.body.appendChild(container);
+
+  var photoCount=photos.filter(function(p){return p.src;}).length;
+  var waitMs=800+photoCount*400;
+
+  setTimeout(function(){
+    /* 每個 .pg div 單獨截圖 → 避免照片頁標題被截斷 */
+    var pgDivs=Array.from(container.querySelectorAll('.pg'));
+    if(pgDivs.length===0)pgDivs=[container];
+
+    var captureOpts={scale:3,useCORS:true,allowTaint:true,
+      backgroundColor:'#ffffff',logging:false,imageTimeout:30000,windowWidth:794};
+
+    var canvasArr=[];
+    function captureNext(idx){
+      if(idx>=pgDivs.length){buildAndSharePDF(canvasArr);return;}
+      html2canvas(pgDivs[idx],captureOpts).then(function(cv){
+        canvasArr.push(cv);captureNext(idx+1);
+      }).catch(function(err){
+        if(container.parentNode)container.parentNode.removeChild(container);
+        var ov=document.getElementById('pdf-ov');if(ov)ov.remove();
+        showToast('\u274c \u622a\u5716\u5931\u6557: '+err.message);
+        console.error(err);
+      });
+    }
+
+    function buildAndSharePDF(canvases){
+      if(container.parentNode)container.parentNode.removeChild(container);
+      try{
+        var JsPDF=window.jspdf?window.jspdf.jsPDF:jsPDF;
+        var pdf=new JsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
+        var pW=210,pH=297;
+        canvases.forEach(function(cv,i){
+          if(i>0)pdf.addPage();
+          var cW=cv.width,cH=cv.height;
+          var imgH=cH*pW/cW;
+          var dataURL=cv.toDataURL('image/jpeg',0.90);
+          pdf.addImage(dataURL,'JPEG',0,0,pW,Math.min(imgH,pH));
+        });
+
+        /* 檔名 */
+        var ono=v('ono')||'',proj2=v('proj')||'',rdate2=v('rdate')||'';
+        var dateStr=rdate2?rdate2.replace(/-/g,''):'';
+        var filename=(ono||'')+(proj2||'')+dateStr;
+        if(!filename)filename='\u65bd\u5de5\u65e5\u5831';
+        filename+='.pdf';
+
+        var ov=document.getElementById('pdf-ov');if(ov)ov.remove();
+        var blob=pdf.output('blob');
+        var file=new File([blob],filename,{type:'application/pdf'});
+        var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+        var isMac=/macintosh|mac os x/i.test(navigator.userAgent)&&!isIOS;
+
+        if(isMac){
+          showMacPDFMenu(pdf,blob,filename);
+        } else if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+          navigator.share({title:filename,files:[file]})
+            .then(function(){showToast('\u2705 PDF \u5206\u4eab\u6210\u529f\uff01');})
+            .catch(function(e){
+              if(e.name!=='AbortError'){pdf.save(filename);showToast('\u2705 PDF \u5df2\u5132\u5b58\uff01');}
+            });
+        } else {
+          pdf.save(filename);showToast('\u2705 PDF \u5df2\u4e0b\u8f09\uff01');
+        }
+      }catch(e2){
+        var ov2=document.getElementById('pdf-ov');if(ov2)ov2.remove();
+        showToast('\u274c PDF \u5efa\u7acb\u5931\u6557: '+e2.message);console.error(e2);
+      }
+    }
+    captureNext(0);
+  },waitMs);
+}
+
+function buildPrintHTML(){
+  /* 資料收集 */
+  var co=v('co')||'翔天科技事業股份有限公司';
+  var proj=v('proj')||''; var sd=fmtDate(v('sdate')); var ed=fmtDate(v('edate'));
+  var rem=v('rem')||''; var rep=v('rep')||''; var rd=fmtDate(v('rdate'));
+  var ono=v('ono')||''; var pg=v('prog')||'';
+  var wa=v('wam')||''; var wp=v('wpm')||'';
+  var ab=v('abn')||''; var imp2=v('imp')||'';
+  var sc2=v('sc')||''; var smgr2=v('smgr')||'';
+  var srev2=v('srev')||''; var sfil2=v('sfil')||v('rep')||'';
+
+  /* 工作人員列 (14) */
+  var wR='';
+  for(var i=0;i<14;i++){
+    var w=workers[i]||{};
+    wR+='<tr style="height:3.67mm">'+
+      '<td class="bl">'+(i+1)+'</td>'+
+      '<td>'+esc(w.prog)+'</td><td>'+esc(w.type)+'</td>'+
+      '<td style="text-align:left">'+esc(w.item)+'</td>'+
+      '<td>'+esc(w.vendor)+'</td>'+
+      '<td>'+(w.am||'')+'</td><td>'+(w.pm||'')+'</td>'+
+      '<td>'+(w.tin||'')+'</td><td>'+(w.tout||'')+'</td>'+
+      '<td style="text-align:left">'+esc(w.cnt)+'</td>'+
+      '</tr>';
+  }
+
+  /* 材料列 (10) */
+  var mR='';
+  for(var i=0;i<10;i++){
+    var m=mats[i]||{};
+    mR+='<tr style="height:4.0mm">'+
+      '<td class="bl">'+(i+1)+'</td>'+
+      '<td style="text-align:left">'+esc(m.name)+'</td>'+
+      '<td>'+esc(m.spec)+'</td>'+
+      '<td>'+(m.today||'')+'</td><td>'+(m.total||'')+'</td>'+
+      '<td>'+esc(m.unit)+'</td>'+
+      '<td style="text-align:left">'+esc(m.note)+'</td>'+
+      '</tr>';
+  }
+
+  /* 機具列 (10) */
+  var eR='';
+  for(var i=0;i<10;i++){
+    var e=equips[i]||{};
+    eR+='<tr style="height:4.1mm">'+
+      '<td class="bl">'+(i+1)+'</td>'+
+      '<td style="text-align:left">'+esc(e.name)+'</td>'+
+      '<td>'+esc(e.vendor)+'</td>'+
+      '<td>'+(e.am||'')+'</td><td>'+(e.pm||'')+'</td>'+
+      '<td style="text-align:left">'+esc(e.cnt)+'</td>'+
+      '</tr>';
+  }
+
+  /* 照片頁 (每頁6張: 3行×2欄) */
+  var pw=photos.filter(function(p){return p.src;});
+  var photoPages='';
+  if(pw.length>0){
+    var tot=Math.ceil(pw.length/6);
+    for(var pg2=0;pg2<tot;pg2++){
+      var sl=pw.slice(pg2*6,pg2*6+6);
+      while(sl.length<6)sl.push(null);
+      var pRows='';
+      for(var row=0;row<3;row++){
+        var L=sl[row*2]; var R=sl[row*2+1];
+        pRows+='<tr>'+
+          '<td class="ph-c">'+(L?esc(L.cap):'')+'</td>'+
+          '<td class="ph-c">'+(R?esc(R.cap):'')+'</td>'+
+          '</tr>'+
+          '<tr>'+
+          '<td class="ph-i">'+(L?'<img src="'+L.src+'">':'')+'</td>'+
+          '<td class="ph-i">'+(R?'<img src="'+R.src+'">':'')+'</td>'+
+          '</tr>';
+      }
+      var lbl=tot>1?' ('+(pg2+1)+'/'+tot+')':'';
+      photoPages+='<div class="pg">'+
+        '<table class="ph-tbl">'+
+          '<colgroup><col style="width:50.36%"><col style="width:49.64%"></colgroup>'+
+          '<tr><td colspan="2" class="ph-t">施工現場照片記錄'+lbl+'</td></tr>'+
+          pRows+
+        '</table></div>';
+    }
+  }
+
+  /* ═══ 統一 CSS ═══ */
+  var css=
+    '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box;margin:0;padding:0;}'+
+    'html,body{font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;font-size:8pt;font-weight:normal;margin:0;padding:0;}'+
+    /* @page margin=0：強制移除頁首頁尾空間 */
+    '@page{size:A4 portrait;margin:0mm;}'+
+    /* 用 padding 取代 margin 確保版面正確 */
+    '.pg{page-break-after:always;width:100%;padding:19mm 7mm 19mm 6mm;box-sizing:border-box;}'+
+    '.pg:last-child{page-break-after:avoid;}'+
+    '.tips{position:fixed;top:0;left:0;right:0;background:#1a56db;color:#fff;padding:11px 16px;font-size:13px;text-align:center;z-index:9999;line-height:1.6;}'+
+    '.tips strong{background:#f59e0b;color:#1f2937;padding:1px 6px;border-radius:4px;}'+
+    '@media print{.tips{display:none!important;}}'+
+    '.pt{width:100%;border-collapse:collapse;table-layout:fixed;}'+
+    '.pt td,.pt th{border:1px solid #555;padding:0.7pt 2pt;vertical-align:middle;text-align:center;font-size:8pt;font-weight:normal;font-family:inherit;line-height:1.2;background:#fff;}'+
+    '.pt+.pt tr:first-child td,.pt+.pt tr:first-child th{border-top:none!important;}'+
+    '.bl{background:#92CDDC!important;}'+
+    '.tl{text-align:left!important;}'+
+    '.sec{font-size:8.5pt;}'+
+    '.ph-tbl{width:100%;border-collapse:collapse;table-layout:fixed;}'+
+    '.ph-tbl td{padding:0;border:1px solid #555;}'+
+    '.ph-t{background:#92CDDC!important;text-align:center;font-size:11pt;height:12.8mm;vertical-align:middle;}'+
+    '.ph-c{text-align:center;font-size:10pt;height:6.5mm;vertical-align:middle;padding:0 2pt;background:#fff!important;}'+
+    '.ph-i{height:67.2mm;overflow:hidden;background:#fff!important;}'+
+    '.ph-i img{width:100%;height:100%;object-fit:cover;display:block;}';
+
+  return '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><style>'+css+'</style></head><body>'+
+  /* tips 已移除 - 使用 @page margin=0 直接避免頁首頁尾 */
+  '<div class="pg">'+
+
+  /* ① 公司名稱 + 報表標題（合併成一格 14.6mm） */
+  '<table class="pt"><colgroup><col style="width:100%"></colgroup>'+
+  '<tr style="height:14.6mm">'+
+    '<td class="bl" style="text-align:center;vertical-align:middle">'+
+      '<div style="font-size:15pt;line-height:1.35">'+esc(co)+'</div>'+
+      '<div style="font-size:12pt;line-height:1.35">施工日報表</div>'+
+    '</td>'+
+  '</tr></table>'+
+
+  /* ② 資訊行 1+2
+     正確10欄寬（對應PDF原始欄位x座標）：
+     5.33 | 14.42 | 11.13 | 14.88 | 4.60 | 10.34 | 5.17 | 5.17 | 5.87 | 23.09
+     Row1: 日期(c1)|日期值(c2)|派任單號(c3)|派任值(c4)|工進(c5)|工進值(c6)|天氣(c7,r2)|上午(c8)|上午值(c9)|填寫人(c10,r2)
+     Row2: 工程名稱(c1-6,span6)                                  |下午(c8)|下午值(c9)
+  */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:14.42%"><col style="width:11.13%">'+
+      '<col style="width:14.88%"><col style="width:4.60%"><col style="width:10.34%">'+
+      '<col style="width:5.17%"><col style="width:5.17%"><col style="width:5.87%">'+
+      '<col style="width:23.09%">'+
+    '</colgroup>'+
+    '<tr style="height:4.1mm">'+
+      '<td class="bl">日期</td>'+
+      '<td class="bl">'+rd+'</td>'+
+      '<td class="bl">派任單號</td>'+
+      '<td class="bl">'+esc(ono)+'</td>'+
+      '<td class="bl">工進</td>'+
+      '<td class="bl">'+esc(pg)+'</td>'+
+      '<td class="bl" rowspan="2">天氣</td>'+
+      '<td class="bl">上午</td>'+
+      '<td class="bl">'+esc(wa)+'</td>'+
+      '<td class="bl" rowspan="2">填寫人：'+esc(rep)+'</td>'+
+    '</tr>'+
+    '<tr style="height:4.1mm">'+
+      '<td class="bl" colspan="6" style="font-size:8.5pt;text-align:center">'+esc(proj)+'</td>'+
+      '<td class="bl">下午</td>'+
+      '<td class="bl">'+esc(wp)+'</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ③ 資訊行3（6欄，欄界對齊上方資訊行1+2的垂直線）
+     欄寬：10.50 | 20.43 | 10.23 | 24.71 | 11.04 | 23.09
+     對齊點：開工日右=10.50%（=col1+2右）
+             完工日値右=65.87%（=col7右，天氣欄右邊界）✓
+             剩餘天數右=76.91%（=col9右，上午値右邊界）✓
+             天數値右=100%（=col10右）✓
+  */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:10.50%"><col style="width:20.43%">'+
+      '<col style="width:10.23%"><col style="width:24.71%">'+
+      '<col style="width:11.04%"><col style="width:23.09%">'+
+    '</colgroup>'+
+    '<tr style="height:3.9mm">'+
+      '<td class="bl">開工日</td>'+
+      '<td class="bl">'+sd+'</td>'+
+      '<td class="bl">完工日</td>'+
+      '<td class="bl">'+ed+'</td>'+
+      '<td class="bl">剩餘天數</td>'+
+      '<td class="bl">'+rem+'</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ④ 每日工作人員段落標題 */
+  '<table class="pt"><colgroup><col style="width:100%"></colgroup>'+
+  '<tr style="height:4.1mm"><td class="bl sec">每日工作人員及工作摘要</td></tr>'+
+  '</table>'+
+
+  /* ⑤ 工作人員欄位標題（2行，10欄） */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:5.17%"><col style="width:9.25%">'+
+      '<col style="width:16.14%"><col style="width:5.24%">'+
+      '<col style="width:4.63%"><col style="width:4.59%">'+
+      '<col style="width:5.17%"><col style="width:5.12%"><col style="width:39.35%">'+
+    '</colgroup>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="bl" rowspan="2">項次</td>'+
+      '<td class="bl" rowspan="2">進度</td>'+
+      '<td class="bl" rowspan="2">工程種類</td>'+
+      '<td class="bl" rowspan="2">工程項目</td>'+
+      '<td class="bl" rowspan="2">廠商</td>'+
+      '<td class="bl" colspan="2">出工人數</td>'+
+      '<td class="bl">進場</td>'+
+      '<td class="bl">離場</td>'+
+      '<td class="bl" rowspan="2">本日施作內容</td>'+
+    '</tr>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="bl">上午</td><td class="bl">下午</td>'+
+      '<td class="bl">時間</td><td class="bl">時間</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑥ 工作人員資料（14行，同10欄 colgroup） */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:5.17%"><col style="width:9.25%">'+
+      '<col style="width:16.14%"><col style="width:5.24%">'+
+      '<col style="width:4.63%"><col style="width:4.59%">'+
+      '<col style="width:5.17%"><col style="width:5.12%"><col style="width:39.35%">'+
+    '</colgroup>'+wR+
+  '</table>'+
+
+  /* ⑦ 材料段落標題＋欄頭（7欄） */
+  /* 欄界: 5.33|14.45|16.10|14.47|5.17|5.17|39.30 */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:14.45%"><col style="width:16.10%">'+
+      '<col style="width:14.47%"><col style="width:5.17%">'+
+      '<col style="width:5.17%"><col style="width:39.30%">'+
+    '</colgroup>'+
+    '<tr style="height:4.0mm">'+
+      '<td class="bl" rowspan="2">項次</td>'+
+      '<td class="bl sec" colspan="6">材料進場數量統計表</td>'+
+    '</tr>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="bl">材料</td><td class="bl">規格</td>'+
+      '<td class="bl">本日進料</td><td class="bl">累計</td>'+
+      '<td class="bl">單位</td><td class="bl">備註</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑧ 材料資料（10行，同7欄 colgroup） */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:14.45%"><col style="width:16.10%">'+
+      '<col style="width:14.47%"><col style="width:5.17%">'+
+      '<col style="width:5.17%"><col style="width:39.30%">'+
+    '</colgroup>'+mR+
+  '</table>'+
+
+  /* ⑨ 機具段落標題＋欄頭（6欄） */
+  /* 欄界: 5.33|25.60|19.43|5.17|5.17|39.30 */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:25.60%">'+
+      '<col style="width:19.43%"><col style="width:5.17%">'+
+      '<col style="width:5.17%"><col style="width:39.30%">'+
+    '</colgroup>'+
+    '<tr style="height:4.0mm">'+
+      '<td class="bl" rowspan="2">項次</td>'+
+      '<td class="bl sec" colspan="5">機具進場數量統計表</td>'+
+    '</tr>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="bl">機具</td><td class="bl">廠商</td>'+
+      '<td class="bl">上午</td><td class="bl">下午</td>'+
+      '<td class="bl">工作內容</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑩ 機具資料（10行，同6欄 colgroup） */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:5.33%"><col style="width:25.60%">'+
+      '<col style="width:19.43%"><col style="width:5.17%">'+
+      '<col style="width:5.17%"><col style="width:39.30%">'+
+    '</colgroup>'+eR+
+  '</table>'+
+
+  /* ⑪ 異常/重要事項標題
+     垂直線對齊：50.36%（與工作人員/材料/機具/簽名列 的中線對齊）
+     異常事項：去掉冒號，置中（與重要事項一致）
+  */
+  '<table class="pt">'+
+    '<colgroup><col style="width:50.36%"><col style="width:49.64%"></colgroup>'+
+    '<tr style="height:8.9mm">'+
+      '<td class="bl sec">異常事項</td>'+
+      '<td class="bl sec">重要事項</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑫ 異常/重要 內容 */
+  '<table class="pt">'+
+    '<colgroup><col style="width:50.36%"><col style="width:49.64%"></colgroup>'+
+    '<tr style="height:33.6mm">'+
+      '<td style="vertical-align:top;text-align:left;padding:3pt;white-space:pre-wrap">'+esc(ab)+'</td>'+
+      '<td style="vertical-align:top;text-align:left;padding:3pt;white-space:pre-wrap">'+esc(imp2)+'</td>'+
+    '</tr>'+
+  '</table>'+
+
+  /* ⑬ 簽名列 */
+  '<table class="pt">'+
+    '<colgroup>'+
+      '<col style="width:25.18%"><col style="width:25.18%">'+
+      '<col style="width:24.82%"><col style="width:24.82%">'+
+    '</colgroup>'+
+    '<tr style="height:4.2mm">'+
+      '<td class="tl" style="padding-left:3pt">會辦單位：'+esc(sc2)+'</td>'+
+      '<td class="tl" style="padding-left:3pt">主管：'+esc(smgr2)+'</td>'+
+      '<td class="tl" style="padding-left:3pt">校閱：'+esc(srev2)+'</td>'+
+      '<td class="tl" style="padding-left:3pt">填表：'+esc(sfil2)+'</td>'+
+    '</tr>'+
+  '</table>'+
+
+  '</div>'+ /* END PAGE 1 */
+
+  photoPages+
+
+  '
+<!-- Mac PDF 操作選單 -->
+<div id="mac-pdf-menu">
+  <div class="mac-box">
+    <div class="mac-title">📄 PDF 輸出</div>
+    <div class="mac-sub" id="mac-pdf-filename"></div>
+    <button class="mac-btn gold" onclick="macSavePDF()">
+      <span class="mi">💾</span>
+      <div><div>選擇儲存位置</div><div style="font-size:11px;opacity:.85;font-weight:400">開啟存檔對話框，可指定路徑</div></div>
+    </button>
+    <button class="mac-btn" onclick="macDownloadPDF()">
+      <span class="mi">⬇️</span>
+      <div><div>直接下載</div><div style="font-size:11px;color:#6b7a88;font-weight:400">存至下載資料夾（可拖到桌面）</div></div>
+    </button>
+    <button class="mac-btn" onclick="macPrintPDF()">
+      <span class="mi">🖨️</span>
+      <div><div>列印</div><div style="font-size:11px;color:#6b7a88;font-weight:400">開啟列印對話框</div></div>
+    </button>
+    <div class="mac-cancel" onclick="closeMacMenu()">取消</div>
+  </div>
+</div>
+</body></html>';
+}
+</script>
+
+<!-- PWA 安裝提示 Banner -->
+<div id="pwa-install-banner">
+  <div class="pwa-icon">📲</div>
+  <div class="pwa-text">
+    <strong>加入主畫面，隨時使用！</strong>
+    點 Safari 下方的「分享」→「加入主畫面」即可安裝
+  </div>
+  <button class="pwa-close" onclick="dismissPWABanner()">✕ 知道了</button>
+</div>
+<script>
+// PWA Service Worker 註冊
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg) {
+        console.log('[PWA] Service Worker 已註冊:', reg.scope);
+      })
+      .catch(function(err) {
+        console.warn('[PWA] Service Worker 註冊失敗:', err);
+      });
+  });
+}
+
+// iOS 安裝提示（Safari 不會自動顯示安裝提示）
+window.addEventListener('load', function() {
+  var isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  var isStandalone = window.navigator.standalone;
+  var isDismissed = localStorage.getItem('pwa-install-dismissed');
+  
+  if (isIOS && !isStandalone && !isDismissed) {
+    setTimeout(function() {
+      var banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.style.display = 'flex';
+    }, 3000);
+  }
+});
+
+function dismissPWABanner() {
+  localStorage.setItem('pwa-install-dismissed', '1');
+  var banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+}
+</script>
+<!-- PWA 安裝提示 Banner -->
+<div id="pwa-install-banner">
+  <div class="pwa-icon">📲</div>
+  <div class="pwa-text">
+    <strong>加入主畫面，隨時使用！</strong>
+    點 Safari 下方的「分享」→「加入主畫面」即可安裝
+  </div>
+  <button class="pwa-close" onclick="dismissPWABanner()">✕ 知道了</button>
+</div>
+
+
+
+<!-- Mac PDF 操作選單 -->
+<div id="mac-pdf-menu">
+  <div class="mac-box">
+    <div class="mac-title">📄 PDF 輸出</div>
+    <div class="mac-sub" id="mac-pdf-filename"></div>
+    <button class="mac-btn gold" onclick="macSavePDF()">
+      <span class="mi">💾</span>
+      <div><div>選擇儲存位置</div><div style="font-size:11px;opacity:.85;font-weight:400">開啟存檔對話框，可指定路徑</div></div>
+    </button>
+    <button class="mac-btn" onclick="macDownloadPDF()">
+      <span class="mi">⬇️</span>
+      <div><div>直接下載</div><div style="font-size:11px;color:#6b7a88;font-weight:400">存至下載資料夾（可拖到桌面）</div></div>
+    </button>
+    <button class="mac-btn" onclick="macPrintPDF()">
+      <span class="mi">🖨️</span>
+      <div><div>列印</div><div style="font-size:11px;color:#6b7a88;font-weight:400">開啟列印對話框</div></div>
+    </button>
+    <div class="mac-cancel" onclick="closeMacMenu()">取消</div>
+  </div>
+</div>
+</body>
+</html>
