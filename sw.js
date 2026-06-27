@@ -1,5 +1,5 @@
 // ===== Service Worker for 施工日報表 PWA =====
-const CACHE_NAME = 'daily-report-v2';
+const CACHE_NAME = 'daily-report-v1';
 const ASSETS = [
   './',
   './index.html',

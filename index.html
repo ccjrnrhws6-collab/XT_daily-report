@@ -980,51 +980,7 @@ function buildPrintHTML(){
 
   photoPages+
 
-  '
-<!-- PWA 安裝提示 Banner -->
-<div id="pwa-install-banner">
-  <div class="pwa-icon">📲</div>
-  <div class="pwa-text">
-    <strong>加入主畫面，隨時使用！</strong>
-    點 Safari 下方的「分享」→「加入主畫面」即可安裝
-  </div>
-  <button class="pwa-close" onclick="dismissPWABanner()">✕ 知道了</button>
-</div>
-<script>
-// PWA Service Worker 註冊
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js')
-      .then(function(reg) {
-        console.log('[PWA] Service Worker 已註冊:', reg.scope);
-      })
-      .catch(function(err) {
-        console.warn('[PWA] Service Worker 註冊失敗:', err);
-      });
-  });
-}
-
-// iOS 安裝提示（Safari 不會自動顯示安裝提示）
-window.addEventListener('load', function() {
-  var isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-  var isStandalone = window.navigator.standalone;
-  var isDismissed = localStorage.getItem('pwa-install-dismissed');
-  
-  if (isIOS && !isStandalone && !isDismissed) {
-    setTimeout(function() {
-      var banner = document.getElementById('pwa-install-banner');
-      if (banner) banner.style.display = 'flex';
-    }, 3000);
-  }
-});
-
-function dismissPWABanner() {
-  localStorage.setItem('pwa-install-dismissed', '1');
-  var banner = document.getElementById('pwa-install-banner');
-  if (banner) banner.style.display = 'none';
-}
-</script>
-</body></html>';
+  '</body></html>';
 }
 </script>
 
@@ -1071,5 +1027,49 @@ function dismissPWABanner() {
   if (banner) banner.style.display = 'none';
 }
 </script>
+<!-- PWA 安裝提示 Banner -->
+<div id="pwa-install-banner">
+  <div class="pwa-icon">📲</div>
+  <div class="pwa-text">
+    <strong>加入主畫面，隨時使用！</strong>
+    點 Safari 下方的「分享」→「加入主畫面」即可安裝
+  </div>
+  <button class="pwa-close" onclick="dismissPWABanner()">✕ 知道了</button>
+</div>
+<script>
+// PWA Service Worker 註冊
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg) {
+        console.log('[PWA] Service Worker 已註冊:', reg.scope);
+      })
+      .catch(function(err) {
+        console.warn('[PWA] Service Worker 註冊失敗:', err);
+      });
+  });
+}
+
+// iOS 安裝提示（Safari 不會自動顯示安裝提示）
+window.addEventListener('load', function() {
+  var isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  var isStandalone = window.navigator.standalone;
+  var isDismissed = localStorage.getItem('pwa-install-dismissed');
+  
+  if (isIOS && !isStandalone && !isDismissed) {
+    setTimeout(function() {
+      var banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.style.display = 'flex';
+    }, 3000);
+  }
+});
+
+function dismissPWABanner() {
+  localStorage.setItem('pwa-install-dismissed', '1');
+  var banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+}
+</script>
+
 </body>
 </html>
