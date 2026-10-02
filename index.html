@@ -2753,7 +2753,7 @@ function renderDraftList(){
 
   /* ── 雲端草稿（也分組）── */
   if(_currentUser&&_userGroup){
-    html+='<div style="font-size:11px;font-weight:700;color:#64748b;padding:4px 14px"> 群組雲端草稿</div>'
+    html+='<div style="font-size:11px;font-weight:700;color:#64748b;padding:4px 14px"> 群組雲端草稿<span id="cloud-draft-count" style="font-weight:400;color:#94a3b8"></span></div>'
       +'<div id="cloud-draft-list" style="border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:12px">'
         +'<div style="padding:14px;text-align:center;color:#94a3b8;font-size:12px">載入中...</div>'
       +'</div>';
@@ -2763,6 +2763,8 @@ function renderDraftList(){
   if(_currentUser&&_userGroup){
     fetchGroupDrafts(function(drafts){
       var cdl=document.getElementById('cloud-draft-list');if(!cdl)return;
+      var cntEl=document.getElementById('cloud-draft-count');
+      if(cntEl)cntEl.textContent=drafts.length?('（共 '+drafts.length+' 筆）'):'';
       if(!drafts.length){cdl.innerHTML='<div style="padding:14px;text-align:center;color:#94a3b8;font-size:12px">尚無群組雲端草稿</div>';return;}
 
       /* 雲端草稿也分組 */
@@ -2796,7 +2798,7 @@ function renderDraftList(){
           ch+='<div class="draft-item" style="padding-left:20px">'
             +'<div class="draft-item-info">'
               +'<div class="draft-item-ono" style="font-size:12px">'+fmtDate(d.date||'')+(d.proj?' | '+escP(d.proj):'')+'</div>'
-              +'<div class="draft-item-sub"><span style="color:#94a3b8;font-size:10px">'+savedByName+(savedT?' · '+savedT:'')+(d.photoCount?' · 📷'+d.photoCount:'')+(d.attachmentCount?' · 📎'+d.attachmentCount:'')+'</span></div>'
+              +'<div class="draft-item-sub"><span style="color:#94a3b8;font-size:10px">'+savedByName+(savedT?' · '+savedT:'')+(d.imagesPurged?' · 🗑️ 圖片已清理':((d.photoCount?' · 📷'+d.photoCount:'')+(d.attachmentCount?' · 📎'+d.attachmentCount:'')))+'</span></div>'
             +'</div>'
             +'<div class="draft-item-btns">'
               +'<button onclick="applyCloudDraft(\''+d.id+'\')" style="background:#0d9488;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">載入</button>'
@@ -3920,19 +3922,119 @@ function saveDraftToCloud(){
         });
       },Promise.resolve());
     });
+  }).then(function(){
+    /* Step 5: 自動清理超過保留筆數的舊圖片（文字永久保留）*/
+    return cleanupOldDraftImages(false);
   }).catch(function(e){console.error('[cloud draft save]',e);});
 }
 
+/* ══ 舊草稿圖片自動清理（保留最近 N 筆的圖片，文字永久保留）══ */
+var DRAFT_IMAGE_KEEP=150;        /* 保留最近幾筆草稿的圖片 */
+var CLEANUP_THROTTLE_MS=60*60*1000; /* 每小時最多清理一次，避免過度讀取 */
+
+/* 分批刪除文件參照（Firestore batch 上限 500）*/
+function batchDeleteRefs(refs){
+  if(!refs||!refs.length)return Promise.resolve();
+  var chunks=[];
+  for(var i=0;i<refs.length;i+=400)chunks.push(refs.slice(i,i+400));
+  return chunks.reduce(function(chain,ch){
+    return chain.then(function(){
+      var b=_fbDb.batch();
+      ch.forEach(function(r){b.delete(r);});
+      return b.commit();
+    });
+  },Promise.resolve());
+}
+
+/* 刪除單一草稿的所有圖片（照片 + 附件頁面），保留文字 */
+function purgeDraftImages(ref){
+  /* ① 刪照片子集合 */
+  return ref.collection('photos').get().then(function(snap){
+    return batchDeleteRefs(snap.docs.map(function(d){return d.ref;}));
+  }).then(function(){
+    /* ② 刪附件（先刪 pages 子集合，再刪附件文件）*/
+    return ref.collection('attachments').get().then(function(attSnap){
+      if(!attSnap.docs.length)return Promise.resolve();
+      return attSnap.docs.reduce(function(chain,attDoc){
+        return chain.then(function(){
+          return attDoc.ref.collection('pages').get().then(function(pgSnap){
+            return batchDeleteRefs(pgSnap.docs.map(function(d){return d.ref;}));
+          }).then(function(){
+            return attDoc.ref.delete();
+          });
+        });
+      },Promise.resolve());
+    });
+  });
+}
+
+/* 主清理函式：撈出全部草稿，第 151 筆之後的圖片刪除 */
+function cleanupOldDraftImages(force){
+  if(!_currentUser||!_userGroup||!_fbDb)return Promise.resolve();
+  /* 節流：非強制模式下，每小時最多跑一次 */
+  if(!force){
+    var last=parseInt(localStorage.getItem('cr-last-cleanup')||'0',10);
+    if(Date.now()-last<CLEANUP_THROTTLE_MS)return Promise.resolve();
+  }
+  var col=_fbDb.collection('groups').doc(_userGroup.id).collection('drafts');
+  var all=[];var lastDoc=null;var rounds=0;
+  function fetchPage(){
+    rounds++;
+    var q=lastDoc
+      ?col.orderBy('savedAt','desc').startAfter(lastDoc).limit(200)
+      :col.orderBy('savedAt','desc').limit(200);
+    return q.get().then(function(snap){
+      snap.docs.forEach(function(d){all.push({ref:d.ref,id:d.id,data:d.data()});});
+      lastDoc=snap.docs[snap.docs.length-1];
+      if(snap.docs.length===200&&rounds<30)return fetchPage();
+      return all;
+    });
+  }
+  return fetchPage().then(function(list){
+    localStorage.setItem('cr-last-cleanup',String(Date.now()));
+    /* 第 151 筆之後，且還有圖片的草稿 */
+    var stale=list.slice(DRAFT_IMAGE_KEEP).filter(function(d){
+      return (d.data.photoCount||0)>0||(d.data.attachmentCount||0)>0;
+    });
+    if(!stale.length)return {purged:0};
+    console.log('[cleanup] 準備清理',stale.length,'筆舊草稿的圖片');
+    return stale.reduce(function(chain,d){
+      return chain.then(function(){
+        return purgeDraftImages(d.ref).then(function(){
+          return d.ref.update({photoCount:0,attachmentCount:0,imagesPurged:true});
+        }).catch(function(e){console.error('[cleanup] 清理失敗',d.id,e);});
+      });
+    },Promise.resolve()).then(function(){return {purged:stale.length};});
+  }).catch(function(e){
+    console.error('[cleanupOldDraftImages]',e);
+    return {purged:0};
+  });
+}
+
+var CLOUD_DRAFT_PAGE=100; /* 每批撈取筆數 */
 function fetchGroupDrafts(callback){
   if(!_currentUser||!_userGroup||!_fbDb){callback([]);return;}
-  _fbDb.collection('groups').doc(_userGroup.id).collection('drafts')
-    .orderBy('savedAt','desc').limit(30)
-    .get().then(function(snap){
-      callback(snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}));
-    }).catch(function(e){
-      console.error('[fetchGroupDrafts]',e);
-      callback([]);
+  var base=_fbDb.collection('groups').doc(_userGroup.id).collection('drafts')
+    .orderBy('savedAt','desc');
+  var all=[];var lastDoc=null;var rounds=0;var MAX_ROUNDS=20; /* 安全上限 2000 筆 */
+  function fetchPage(){
+    rounds++;
+    var q=lastDoc?base.startAfter(lastDoc).limit(CLOUD_DRAFT_PAGE):base.limit(CLOUD_DRAFT_PAGE);
+    return q.get().then(function(snap){
+      snap.docs.forEach(function(d){all.push(Object.assign({id:d.id},d.data()));});
+      lastDoc=snap.docs[snap.docs.length-1];
+      /* 還有下一批就繼續撈 */
+      if(snap.docs.length===CLOUD_DRAFT_PAGE&&rounds<MAX_ROUNDS)return fetchPage();
+      return all;
     });
+  }
+  fetchPage().then(function(list){
+    callback(list);
+  }).catch(function(e){
+    console.error('[fetchGroupDrafts]',e);
+    /* 若中途失敗，回傳已撈到的部分 */
+    callback(all);
+  });
 }
 
 function applyCloudDraft(draftId){
@@ -3950,7 +4052,12 @@ function applyCloudDraft(draftId){
     if(!photoCount){
       /* 無照片草稿：仍需載入附件 */
       photos=[];addPh();addPh();renderPh();
-      closeDraftModal();showToast('☁️ 已載入群組草稿');
+      closeDraftModal();
+      if(_draftData.imagesPurged){
+        showToast('☁️ 已載入草稿（圖片已清理，僅保留文字資料）');
+      }else{
+        showToast('☁️ 已載入群組草稿');
+      }
       _loadCloudAttachments(ref,_draftData.attachmentCount||0);
       return Promise.reject('done');
     }
@@ -4754,6 +4861,22 @@ function pullSettingsFromCloud(){
 
 /* 管理者才顯示雲端同步區塊和工程同步按鈕 */
 /* ── 是否為群組管理者（用於權限判斷）── */
+function manualCleanupImages(){
+  if(!isGroupManager()){showToast('⚠️ 您是一般成員，無權執行清理');return;}
+  if(!_currentUser||!_userGroup||!_fbDb){showToast('請先登入');return;}
+  if(!confirm('確定要清理舊草稿的圖片嗎？\n\n• 保留最近 150 筆草稿的照片與附件\n• 更舊的圖片將被永久刪除\n• 文字資料不受影響\n\n此操作無法復原。'))return;
+  showToast('🧹 清理中，請稍候...');
+  cleanupOldDraftImages(true).then(function(r){
+    if(r&&r.purged>0){
+      showToast('✅ 已清理 '+r.purged+' 筆舊草稿的圖片');
+    }else{
+      showToast('✅ 檢查完成，沒有需要清理的圖片');
+    }
+  }).catch(function(e){
+    showToast('❌ 清理失敗: '+(e.message||'').slice(0,40));
+  });
+}
+
 function isGroupManager(){
   if(!_userGroup||!_currentUser)return false;
   if(_userGroup.managerUid===_currentUser.uid)return true;
@@ -5132,6 +5255,8 @@ function dismissPWABanner() {
         <div id="cloud-sync-section" style="display:none;margin-top:8px">
           <div id="cloud-sync-status" style="font-size:12px;color:var(--g500);min-height:16px;margin-bottom:8px;text-align:center"></div>
           <button onclick="pushSettingsToCloud()" style="width:100%;background:linear-gradient(135deg,#3d5a80,#2a4060);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">☁️ 同步設定給所有成員</button>
+          <button onclick="manualCleanupImages()" style="width:100%;background:#fff;color:#64748b;border:1.5px solid #cbd5e1;padding:10px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;margin-top:8px">🧹 清理舊圖片（保留最近 150 筆）</button>
+          <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:6px;line-height:1.5">照片與附件圖片僅保留最近 150 筆草稿<br>文字資料永久保留</div>
         </div>
 
       </div>
