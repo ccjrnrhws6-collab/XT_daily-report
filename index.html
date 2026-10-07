@@ -3878,6 +3878,11 @@ function doDeleteGroup(){
     /* ⑤ 切換到其他群組或無群組狀態 */
     var rest=Object.keys(_userGroups);
     closeDeleteGroupModal();
+    /* ⑥ 直接離開群組設定頁面（不要停留在已刪除群組的設定頁）*/
+    var gsm=document.getElementById('group-settings-modal');
+    if(gsm)gsm.style.display='none';
+    var umm=document.getElementById('user-menu-modal');
+    if(umm)umm.style.display='none';
     if(rest.length){
       _userGroup=_userGroups[rest[0]];
       _fbDb.collection('users').doc(_currentUser.uid)
@@ -5029,22 +5034,6 @@ function pullSettingsFromCloud(){
 
 /* 管理者才顯示雲端同步區塊和工程同步按鈕 */
 /* ── 是否為群組管理者（用於權限判斷）── */
-function manualCleanupImages(){
-  if(!isGroupManager()){showToast('⚠️ 您是一般成員，無權執行清理');return;}
-  if(!_currentUser||!_userGroup||!_fbDb){showToast('請先登入');return;}
-  if(!confirm('確定要清理舊草稿的圖片嗎？\n\n• 保留最近 150 筆草稿的照片與附件\n• 更舊的圖片將被永久刪除\n• 文字資料不受影響\n\n此操作無法復原。'))return;
-  showToast('🧹 清理中，請稍候...');
-  cleanupOldDraftImages(true).then(function(r){
-    if(r&&r.purged>0){
-      showToast('✅ 已清理 '+r.purged+' 筆舊草稿的圖片');
-    }else{
-      showToast('✅ 檢查完成，沒有需要清理的圖片');
-    }
-  }).catch(function(e){
-    showToast('❌ 清理失敗: '+(e.message||'').slice(0,40));
-  });
-}
-
 function isGroupManager(){
   if(!_userGroup||!_currentUser)return false;
   if(_userGroup.managerUid===_currentUser.uid)return true;
@@ -5423,11 +5412,8 @@ function dismissPWABanner() {
         <div id="cloud-sync-section" style="display:none;margin-top:8px">
           <div id="cloud-sync-status" style="font-size:12px;color:var(--g500);min-height:16px;margin-bottom:8px;text-align:center"></div>
           <button onclick="pushSettingsToCloud()" style="width:100%;background:linear-gradient(135deg,#3d5a80,#2a4060);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">☁️ 同步設定給所有成員</button>
-          <button onclick="manualCleanupImages()" style="width:100%;background:#fff;color:#64748b;border:1.5px solid #cbd5e1;padding:10px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;margin-top:8px">🧹 清理舊圖片（保留最近 150 筆）</button>
-          <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:6px;line-height:1.5">照片與附件圖片僅保留最近 150 筆草稿<br>文字資料永久保留</div>
           <hr style="border:none;border-top:1px solid #eef2f8;margin:16px 0 12px">
           <button onclick="showDeleteGroupModal()" style="width:100%;background:#fff;color:#dc2626;border:1.5px solid #fecaca;padding:11px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">🗑️ 刪除群組</button>
-          <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:6px;line-height:1.5">將永久刪除本群組所有草稿、照片、附件與設定<br>此操作無法復原</div>
         </div>
 
       </div>
