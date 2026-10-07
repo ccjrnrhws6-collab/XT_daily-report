@@ -3888,16 +3888,22 @@ function doDeleteGroup(){
       _fbDb.collection('users').doc(_currentUser.uid)
         .update({groupId:_userGroup.id,activeGroupId:_userGroup.id}).catch(function(){});
       updateGroupSelect();updateUserUI();showAdminCloudSection();
+      syncGroupNameToCo();          /* 公司名稱跟著換 */
       reloadGroupSettings();updateFormMode();
       showToast('✅ 已刪除群組「'+gname+'」，已切換到「'+(_userGroup.name||'其他群組')+'」');
+      /* 與雲端完整同步一次 */
+      refreshGroupState(_userGroup.id);
     }else{
       _userGroup=null;
       projects=[];staffList=[];deptList=[];
       updateProjDropdowns();updateNameDropdowns();updateDeptDropdowns();
       renderProjList();renderStaffList();renderDeptList();
       updateGroupSelect();updateUserUI();showAdminCloudSection();
+      syncGroupNameToCo();          /* 清空公司名稱 */
       updateFormMode();
       showToast('✅ 已刪除群組「'+gname+'」');
+      /* 與雲端完整同步一次 */
+      refreshGroupState();
     }
   }).catch(function(e){
     btn.disabled=false;btn.textContent='確認刪除群組';
@@ -3963,6 +3969,35 @@ function deleteGroupData(groupId){
   return Promise.all([p1,p2]).then(function(){return gRef.delete();});
 }
 
+/* ══ 群組狀態完整同步（本地 + 雲端）══
+   用於建立 / 刪除 / 更名群組後，確保：
+   ① 所屬群組下拉選單
+   ② 使用者選單的群組名稱
+   ③ 工程資訊的公司名稱欄位
+   ④ 該群組的工程／人員／部門設定
+   全部立即更新 */
+function refreshGroupState(preferredId){
+  if(!_currentUser)return Promise.resolve(null);
+  return new Promise(function(resolve){
+    loadAllUserGroups(_currentUser.uid,function(){
+      var activeId=preferredId
+        ||(_userProfile&&_userProfile.activeGroupId)
+        ||(_userProfile&&_userProfile.groupId);
+      _userGroup=_userGroups[activeId]
+        ||_userGroups[Object.keys(_userGroups)[0]]
+        ||null;
+      if(_userProfile&&_userGroup)_userProfile.activeGroupId=_userGroup.id;
+      updateGroupSelect();
+      updateUserUI();
+      showAdminCloudSection();
+      syncGroupNameToCo();
+      reloadGroupSettings();
+      updateFormMode();
+      resolve(_userGroup);
+    });
+  });
+}
+
 function doCreateGroup(){
   if(!_currentUser){showToast('請先登入');return;}
   var name=document.getElementById('new-group-name').value.trim();
@@ -3973,16 +4008,23 @@ function doCreateGroup(){
     inviteCode:inviteCode,memberUids:[_currentUser.uid],createdAt:new Date()
   };
   _fbDb.collection('groups').add(groupData).then(function(ref){
-    /* 更新使用者角色 */
-    return _fbDb.collection('users').doc(_currentUser.uid).update({role:'manager',groupId:ref.id}).then(function(){
-      _userProfile.role='manager';_userProfile.groupId=ref.id;
-      _userGroup=groupData;_userGroup.id=ref.id;
+    /* 更新使用者角色與作用中群組 */
+    return _fbDb.collection('users').doc(_currentUser.uid)
+      .update({role:'manager',groupId:ref.id,activeGroupId:ref.id}).then(function(){
+      _userProfile.role='manager';_userProfile.groupId=ref.id;_userProfile.activeGroupId=ref.id;
+      /* ① 立即更新本地狀態（不等雲端回應）*/
+      _userGroups[ref.id]=Object.assign({id:ref.id},groupData);
+      _userGroup=_userGroups[ref.id];
       document.getElementById('create-group-modal').style.display='none';
-      updateUserUI();
-      /* 新群組：清空舊設定，載入此群組專屬設定 */
-      reloadGroupSettings();
+      updateGroupSelect();          /* ② 所屬群組下拉選單 */
+      updateUserUI();               /* ③ 使用者選單群組名稱 */
+      showAdminCloudSection();
+      syncGroupNameToCo();          /* ④ 工程資訊的公司名稱 */
+      reloadGroupSettings();        /* ⑤ 載入此群組專屬設定 */
       updateFormMode();
       showToast('✅ 群組建立成功！邀請碼：'+inviteCode);
+      /* ⑥ 再與雲端完整同步一次 */
+      refreshGroupState(ref.id);
     });
   }).catch(function(e){showToast('❌ 建立失敗: '+e.message);});
 }
@@ -4489,6 +4531,10 @@ function saveGroupName(){
       updateGroupSelect();
       updateUserUI();
       syncGroupNameToCo();
+      /* 同步更新設定頁的群組名稱顯示 */
+      var _gn=document.getElementById('gs-group-name');if(_gn)_gn.textContent=newName;
+      /* 與雲端完整同步一次 */
+      refreshGroupState(_userGroup.id);
       /* 同步寫入 settings/main，讓其他成員下次同步時可取得新群組名稱 */
       _fbDb.collection('groups').doc(_userGroup.id).collection('settings').doc('main')
         .set({groupName:newName},{merge:true})
