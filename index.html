@@ -2202,14 +2202,47 @@ var adminUnlocked=false;
 var ADMIN_PIN_KEY='cr-admin-pin';
 var PROJECTS_KEY='cr-projects';
 
+/* ── 設定依群組分開儲存（避免不同群組互相污染）── */
+function gKey(base){
+  return (_userGroup&&_userGroup.id)?(base+'-'+_userGroup.id):base;
+}
+/* 一次性遷移：把舊版全域設定搬進「目前群組」的專屬空間 */
+function migrateLegacySettings(){
+  if(localStorage.getItem('cr-settings-scoped'))return;
+  if(!_userGroup||!_userGroup.id)return;
+  ['cr-projects','cr-staff','cr-depts'].forEach(function(base){
+    var legacy=localStorage.getItem(base);
+    if(legacy){
+      var nk=base+'-'+_userGroup.id;
+      if(!localStorage.getItem(nk))localStorage.setItem(nk,legacy);
+      localStorage.removeItem(base);
+    }
+  });
+  localStorage.setItem('cr-settings-scoped','1');
+}
+
+/* ── 切換群組時重新載入該群組的設定 ── */
+function reloadGroupSettings(){
+  if(!_userGroup||!_userGroup.id)return;
+  migrateLegacySettings();
+  /* 清空記憶體，避免沿用上一組的資料 */
+  projects=[];staffList=[];deptList=[];
+  loadProjects();loadStaff();loadDepts();
+  updateProjDropdowns();updateNameDropdowns();updateDeptDropdowns();
+  renderProjList();renderStaffList();renderDeptList();
+  /* 再從雲端拉取該群組的設定（雲端優先）*/
+  pullSettingsFromCloud();
+}
+
 function loadProjects(){
-  var raw=localStorage.getItem(PROJECTS_KEY);
+  var raw=localStorage.getItem(gKey(PROJECTS_KEY));
   if(raw){try{projects=JSON.parse(raw);}catch(e){projects=[];}}
+  else{projects=[];}
   updateProjDropdowns();
 }
 
 function saveProjectsDB(){
-  localStorage.setItem(PROJECTS_KEY,JSON.stringify(projects));
+  localStorage.setItem(gKey(PROJECTS_KEY),JSON.stringify(projects));
   updateProjDropdowns();
 }
 
@@ -2418,12 +2451,13 @@ var DEPT_KEY='cr-depts';
 
 /* ── 人員 ── */
 function loadStaff(){
-  var raw=localStorage.getItem(STAFF_KEY);
+  var raw=localStorage.getItem(gKey(STAFF_KEY));
   if(raw){try{staffList=JSON.parse(raw);}catch(e){staffList=[];}}
+  else{staffList=[];}
   updateNameDropdowns();
 }
 function saveStaff(){
-  localStorage.setItem(STAFF_KEY,JSON.stringify(staffList));
+  localStorage.setItem(gKey(STAFF_KEY),JSON.stringify(staffList));
   updateNameDropdowns();
   renderStaffList();
 }
@@ -2480,12 +2514,13 @@ function onNameSelect(selId,inputId){
 
 /* ── 部門 ── */
 function loadDepts(){
-  var raw=localStorage.getItem(DEPT_KEY);
+  var raw=localStorage.getItem(gKey(DEPT_KEY));
   if(raw){try{deptList=JSON.parse(raw);}catch(e){deptList=[];}}
+  else{deptList=[];}
   updateDeptDropdowns();
 }
 function saveDepts(){
-  localStorage.setItem(DEPT_KEY,JSON.stringify(deptList));
+  localStorage.setItem(gKey(DEPT_KEY),JSON.stringify(deptList));
   updateDeptDropdowns();
   renderDeptList();
 }
@@ -3668,8 +3703,8 @@ function loadGroupInfo(groupId){
       _userGroup.id=doc.id;
       updateUserUI();
       showAdminCloudSection();
-      /* 成員自動從雲端拉取最新設定 */
-      pullSettingsFromCloud();
+      /* 成員自動從雲端拉取最新設定（先清空避免跨群組污染）*/
+      reloadGroupSettings();
       /* 同時拉取詞彙庫 */
       pullVocabularyFromCloud();
       /* 登入後自動帶入群組名稱到公司名稱欄位 */
@@ -3811,6 +3846,9 @@ function doCreateGroup(){
       _userGroup=groupData;_userGroup.id=ref.id;
       document.getElementById('create-group-modal').style.display='none';
       updateUserUI();
+      /* 新群組：清空舊設定，載入此群組專屬設定 */
+      reloadGroupSettings();
+      updateFormMode();
       showToast('✅ 群組建立成功！邀請碼：'+inviteCode);
     });
   }).catch(function(e){showToast('❌ 建立失敗: '+e.message);});
@@ -3833,9 +3871,10 @@ function joinGroupByCode(){
       _userGroup=doc.data();_userGroup.id=groupId;
       document.getElementById('invite-code-inp').value='';
       updateUserUI();
+      reloadGroupSettings();
+      updateFormMode();
       showToast('✅ 已加入群組：'+(_userGroup.name||''));
       syncGroupNameToCo();
-      syncCloudProjectsToLocal();
     });
   }).catch(function(e){showToast('❌ 加入失敗: '+e.message);});
 }
@@ -4237,7 +4276,7 @@ function switchActiveGroup(groupId){
   }
   updateUserUI();
   showAdminCloudSection();
-  pullSettingsFromCloud();
+  reloadGroupSettings();
   showToast('已切換到：'+(_userGroup.name||'群組'));
 }
 
@@ -4269,7 +4308,8 @@ joinGroupByCode=function(sourceId){
       updateGroupSelect();
       updateUserUI();
       showAdminCloudSection();
-      pullSettingsFromCloud();
+      reloadGroupSettings();
+      updateFormMode();
       showToast('✅ 已加入群組：'+(_userGroup.name||''));
     });
   }).catch(function(e){showToast('❌ 加入失敗: '+e.message);});
@@ -4294,7 +4334,7 @@ loadGroupInfo=function(groupId){
     updateGroupSelect();
     updateUserUI();
     showAdminCloudSection();
-    pullSettingsFromCloud();
+    reloadGroupSettings();
     syncGroupNameToCo(); /* 帶入群組名稱到公司名稱欄位 */
     updateFormMode();    /* 切換欄位為下拉選單模式 */
   });
@@ -4821,21 +4861,21 @@ function pullSettingsFromCloud(){
           if(!exists)merged.push(lp);
         });
         projects=merged;
-        localStorage.setItem('cr-projects',JSON.stringify(projects));
+        localStorage.setItem(gKey('cr-projects'),JSON.stringify(projects));
         updateProjDropdowns();
         changed=true;
       }
       if(d.staff&&d.staff.length){
         /* 以雲端為主 */
         staffList=d.staff;
-        localStorage.setItem('cr-staff',JSON.stringify(staffList));
+        localStorage.setItem(gKey('cr-staff'),JSON.stringify(staffList));
         updateNameDropdowns();
         renderStaffList();
         changed=true;
       }
       if(d.depts&&d.depts.length){
         deptList=d.depts;
-        localStorage.setItem('cr-depts',JSON.stringify(deptList));
+        localStorage.setItem(gKey('cr-depts'),JSON.stringify(deptList));
         updateDeptDropdowns();
         renderDeptList();
         changed=true;
@@ -5268,7 +5308,7 @@ function dismissPWABanner() {
 <div id="create-group-modal" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:14px;width:90%;max-width:340px;padding:20px;box-shadow:0 8px 40px rgba(0,0,0,.4)">
     <div style="font-size:15px;font-weight:800;color:#2a4060;margin-bottom:14px">🏢 建立群組</div>
-    <div class="fld" style="margin-bottom:14px"><label>群組名稱</label><input type="text" id="new-group-name" placeholder="例：翔天科技工程隊A"></div>
+    <div class="fld" style="margin-bottom:14px"><label>群組名稱</label><input type="text" id="new-group-name" placeholder="（輸入群組名稱）"></div>
     <div style="display:flex;gap:8px">
       <button onclick="doCreateGroup()" style="flex:1;background:#3d5a80;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;cursor:pointer">建立</button>
       <button onclick="document.getElementById('create-group-modal').style.display='none'" style="flex:1;background:#f0f4f8;color:#64748b;border:none;padding:11px;border-radius:8px;font-weight:700;cursor:pointer">取消</button>
