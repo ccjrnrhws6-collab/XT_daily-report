@@ -3830,6 +3830,134 @@ function genInviteCode(){
   return code;
 }
 
+/* ══ 刪除群組 ══ */
+function showDeleteGroupModal(){
+  if(!isGroupManager()){showToast('只有管理者可以刪除群組');return;}
+  if(!_currentUser||!_userGroup){showToast('請先登入並加入群組');return;}
+  var nm=document.getElementById('dg-group-name');if(nm)nm.textContent=_userGroup.name||'未命名群組';
+  var em=document.getElementById('dg-email');if(em)em.value=_currentUser.email||'';
+  var pw=document.getElementById('dg-pw');if(pw)pw.value='';
+  var er=document.getElementById('dg-error');if(er)er.textContent='';
+  var btn=document.getElementById('dg-submit');if(btn){btn.textContent='確認刪除群組';btn.disabled=false;}
+  document.getElementById('delete-group-modal').style.display='block';
+}
+function closeDeleteGroupModal(){
+  document.getElementById('delete-group-modal').style.display='none';
+  var pw=document.getElementById('dg-pw');if(pw)pw.value='';
+}
+
+/* 重新驗證身分後刪除整個群組 */
+function doDeleteGroup(){
+  if(!_currentUser||!_userGroup){showToast('請先登入並加入群組');return;}
+  if(!isGroupManager()){showToast('只有管理者可以刪除群組');return;}
+  var email=(document.getElementById('dg-email').value||'').trim();
+  var pw=document.getElementById('dg-pw').value||'';
+  var errEl=document.getElementById('dg-error');
+  var btn=document.getElementById('dg-submit');
+  if(!email||!pw){errEl.textContent='請輸入帳號與密碼';return;}
+  var gid=_userGroup.id;var gname=_userGroup.name||'未命名群組';
+  btn.disabled=true;btn.textContent='驗證身分中...';errEl.textContent='';
+
+  /* ① 重新驗證（Firebase reauthenticate）*/
+  var cred=firebase.auth.EmailAuthProvider.credential(email,pw);
+  _currentUser.reauthenticateWithCredential(cred).then(function(){
+    btn.textContent='刪除中，請勿關閉...';
+    errEl.style.color='#0d9488';errEl.textContent='⏳ 正在刪除群組資料...';
+    /* ② 刪除所有資料 */
+    return deleteGroupData(gid);
+  }).then(function(){
+    /* ③ 更新使用者資料：移出群組 */
+    return _fbDb.collection('users').doc(_currentUser.uid)
+      .update({groupId:'',activeGroupId:''}).catch(function(){});
+  }).then(function(){
+    /* ④ 清理本地快取 */
+    ['cr-projects','cr-staff','cr-depts'].forEach(function(base){
+      try{localStorage.removeItem(base+'-'+gid);}catch(e){}
+    });
+    delete _userGroups[gid];
+    /* ⑤ 切換到其他群組或無群組狀態 */
+    var rest=Object.keys(_userGroups);
+    closeDeleteGroupModal();
+    if(rest.length){
+      _userGroup=_userGroups[rest[0]];
+      _fbDb.collection('users').doc(_currentUser.uid)
+        .update({groupId:_userGroup.id,activeGroupId:_userGroup.id}).catch(function(){});
+      updateGroupSelect();updateUserUI();showAdminCloudSection();
+      reloadGroupSettings();updateFormMode();
+      showToast('✅ 已刪除群組「'+gname+'」，已切換到「'+(_userGroup.name||'其他群組')+'」');
+    }else{
+      _userGroup=null;
+      projects=[];staffList=[];deptList=[];
+      updateProjDropdowns();updateNameDropdowns();updateDeptDropdowns();
+      renderProjList();renderStaffList();renderDeptList();
+      updateGroupSelect();updateUserUI();showAdminCloudSection();
+      updateFormMode();
+      showToast('✅ 已刪除群組「'+gname+'」');
+    }
+  }).catch(function(e){
+    btn.disabled=false;btn.textContent='確認刪除群組';
+    errEl.style.color='#dc2626';
+    var msgs={
+      'auth/wrong-password':'密碼錯誤，請重新輸入',
+      'auth/invalid-credential':'帳號或密碼錯誤，請重新輸入',
+      'auth/user-mismatch':'此帳號與目前登入的帳號不符',
+      'auth/invalid-email':'電子郵件格式錯誤',
+      'auth/too-many-requests':'嘗試次數過多，請稍後再試',
+      'auth/requires-recent-login':'請重新登入後再試',
+      'auth/network-request-failed':'網路連線失敗，請檢查網路'
+    };
+    errEl.textContent=msgs[e.code]||('刪除失敗: '+(e.message||'').slice(0,50));
+  });
+}
+
+/* 遞迴刪除集合（每批 300 筆讀取；無子集合時用 batch 快速刪除）*/
+function deleteCollectionRecursive(colRef,perDoc){
+  return colRef.limit(300).get().then(function(snap){
+    if(!snap.docs.length)return Promise.resolve();
+    var next=function(){
+      if(snap.docs.length===300)return deleteCollectionRecursive(colRef,perDoc);
+    };
+    /* 無子集合 → batch 快速刪除（每批 400）*/
+    if(!perDoc){
+      var chunks=[];
+      for(var i=0;i<snap.docs.length;i+=400)chunks.push(snap.docs.slice(i,i+400));
+      return chunks.reduce(function(chain,ch){
+        return chain.then(function(){
+          var b=_fbDb.batch();
+          ch.forEach(function(d){b.delete(d.ref);});
+          return b.commit();
+        });
+      },Promise.resolve()).then(next);
+    }
+    /* 有子集合 → 逐一處理（先刪子集合再刪本體）*/
+    return snap.docs.reduce(function(chain,doc){
+      return chain.then(function(){
+        return perDoc(doc.ref).then(function(){return doc.ref.delete();});
+      });
+    },Promise.resolve()).then(next);
+  });
+}
+
+/* 刪除群組底下所有資料 */
+function deleteGroupData(groupId){
+  var gRef=_fbDb.collection('groups').doc(groupId);
+  /* ① drafts → 內含 photos 與 attachments/pages */
+  var p1=deleteCollectionRecursive(gRef.collection('drafts'),function(draftRef){
+    return deleteCollectionRecursive(draftRef.collection('photos'))
+      .then(function(){
+        return deleteCollectionRecursive(draftRef.collection('attachments'),function(attRef){
+          return deleteCollectionRecursive(attRef.collection('pages'));
+        });
+      });
+  });
+  /* ② 其餘子集合 */
+  var p2=['reports','projects','vocabulary','settings'].reduce(function(chain,name){
+    return chain.then(function(){return deleteCollectionRecursive(gRef.collection(name));});
+  },Promise.resolve());
+  /* ③ 最後刪除群組主文件 */
+  return Promise.all([p1,p2]).then(function(){return gRef.delete();});
+}
+
 function doCreateGroup(){
   if(!_currentUser){showToast('請先登入');return;}
   var name=document.getElementById('new-group-name').value.trim();
@@ -5297,8 +5425,49 @@ function dismissPWABanner() {
           <button onclick="pushSettingsToCloud()" style="width:100%;background:linear-gradient(135deg,#3d5a80,#2a4060);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">☁️ 同步設定給所有成員</button>
           <button onclick="manualCleanupImages()" style="width:100%;background:#fff;color:#64748b;border:1.5px solid #cbd5e1;padding:10px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;margin-top:8px">🧹 清理舊圖片（保留最近 150 筆）</button>
           <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:6px;line-height:1.5">照片與附件圖片僅保留最近 150 筆草稿<br>文字資料永久保留</div>
+          <hr style="border:none;border-top:1px solid #eef2f8;margin:16px 0 12px">
+          <button onclick="showDeleteGroupModal()" style="width:100%;background:#fff;color:#dc2626;border:1.5px solid #fecaca;padding:11px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">🗑️ 刪除群組</button>
+          <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:6px;line-height:1.5">將永久刪除本群組所有草稿、照片、附件與設定<br>此操作無法復原</div>
         </div>
 
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 刪除群組確認 Modal ══ -->
+<div id="delete-group-modal" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(8,20,40,.85);overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5)">
+      <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:18px 20px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="color:#fff;font-size:16px;font-weight:800">🗑️ 刪除群組</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px;margin-top:3px">此操作無法復原</div>
+        </div>
+        <button onclick="closeDeleteGroupModal()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;width:30px;height:30px;border-radius:50%;font-size:15px;cursor:pointer;line-height:1">✕</button>
+      </div>
+      <div style="padding:18px">
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;margin-bottom:16px">
+          <div style="font-size:12px;color:#991b1b;line-height:1.7">
+            即將刪除群組：<b id="dg-group-name"></b><br>
+            包含以下所有資料，<b>無法復原</b>：<br>
+            • 所有日報草稿與歷史記錄<br>
+            • 所有施工照片與附件<br>
+            • 工程／人員／部門設定<br>
+            • 所有成員將一併退出此群組
+          </div>
+        </div>
+        <div class="fld" style="margin-bottom:12px">
+          <label>請輸入您的帳號（電子郵件）</label>
+          <input type="email" id="dg-email" placeholder="your@email.com" autocomplete="off">
+        </div>
+        <div class="fld" style="margin-bottom:12px">
+          <label>請輸入您的密碼</label>
+          <input type="password" id="dg-pw" placeholder="輸入密碼以確認身分" autocomplete="off">
+        </div>
+        <div id="dg-error" style="color:#dc2626;font-size:12px;min-height:18px;margin-bottom:8px;text-align:center"></div>
+        <button id="dg-submit" onclick="doDeleteGroup()" style="width:100%;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;padding:13px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">確認刪除群組</button>
+        <button onclick="closeDeleteGroupModal()" style="width:100%;background:#f0f4f8;color:#64748b;border:none;padding:11px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">取消</button>
       </div>
     </div>
   </div>
