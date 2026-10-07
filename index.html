@@ -882,6 +882,9 @@ window.addEventListener('resize',adjustLayout);
 })();
 
 window.onload=function(){
+  /* 顯示目前版本（用來確認 App 是否載入新版）*/
+  var _bEl=document.getElementById('app-build-login');
+  if(_bEl)_bEl.textContent=APP_BUILD;
   loadProjects();
   loadStaff();
   loadDepts();
@@ -2673,12 +2676,15 @@ function clearAllToDefault(){
 
 /* ── 清空每日記錄（保留工程/簽名設定）── */
 function clearDailyFields(){
+  /* 完整重置：工作人員、材料、機具、照片、附件、異常/重要事項 */
   workers=[];mats=[];equips=[];photos=[];attachments=[];
   ['wb','mb','eb','pgrid','att-list'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
   var abn=document.getElementById('abn');if(abn)abn.value='';
   var imp2=document.getElementById('imp');if(imp2)imp2.value='';
   _addDefaultWorker();
-  addM();addE();addPh();addPh();renderAtt();
+  addM();addE();addPh();addPh();
+  renderAtt();
+  _curDate=v('rdate');
   updStats();
 }
 
@@ -2887,42 +2893,30 @@ function checkAndSwitchCombo(){
   var existing=localStorage.getItem(key);
 
   if(existing){
-    /* 此組合已有草稿 → 自動載入 */
+    /* 此組合已有草稿 → 自動載入該草稿 */
     try{
       applyDraftData(JSON.parse(existing));
       localStorage.setItem('cr-d-last',key);
       showToast('\u5df2\u8f09\u5165 '+(newOno||'')+' '+fmtDate(newDate)+' \u7684\u8349\u7a3f');
     }catch(e){}
+    _curOno=newOno;
+    _curDate=newDate;
+    updateDraftBanner();
+    switchVocabForOno();
     return;
   }
 
-  /* 無現有草稿 */
-  if(newOno===_curOno && newDate!==_curDate){
-    /* 相同派任單號，不同日期 → 清空每日欄位（保留工程/簽名資訊）*/
-    clearDailyFields();
-    showToast('\u65b0\u65e5\u671f '+fmtDate(newDate)+'\uff0c\u6bcf\u65e5\u6b04\u4f4d\u5df2\u91cd\u7f6e');
-  }
+  /* 無現有草稿 → 完整重置日報內容（含照片與附件）*/
+  clearDailyFields();
   _curOno=newOno;
   _curDate=newDate;
   updateDraftBanner();
   /* 派任單號變更時切換詞彙庫 */
   switchVocabForOno();
+  showToast('\u5df2\u5207\u63db\u81f3 '+(newOno||'')+' '+fmtDate(newDate)+'\uff0c\u65e5\u5831\u5167\u5bb9\u5df2\u91cd\u7f6e');
 }
 
 /* 清空每日欄位：異常、重要、工作人員、材料、機具、照片（保留工程/簽名）*/
-function clearDailyFields(){
-  workers=[];mats=[];equips=[];photos=[];
-  ['wb','mb','eb','pgrid'].forEach(function(id){
-    var el=document.getElementById(id);if(el)el.innerHTML='';
-  });
-  var abn=document.getElementById('abn');if(abn)abn.value='';
-  var imp2=document.getElementById('imp');if(imp2)imp2.value='';
-  _addDefaultWorker();
-  addM();addE();addPh();addPh();
-  _curDate=v('rdate');
-  updStats();
-}
-
 /* 公開匯入：不需管理員密碼，一般使用者貼設定碼即可同步設定 */
 function pubImportSettings(){
   var code=document.getElementById('pub-import-code').value.trim();
@@ -3889,7 +3883,9 @@ function doDeleteGroup(){
         .update({groupId:_userGroup.id,activeGroupId:_userGroup.id}).catch(function(){});
       updateGroupSelect();updateUserUI();showAdminCloudSection();
       syncGroupNameToCo();          /* 公司名稱跟著換 */
-      reloadGroupSettings();updateFormMode();
+      reloadGroupSettings();
+      resetReportForGroupSwitch();  /* 日報內容重置 */
+      updateFormMode();
       showToast('✅ 已刪除群組「'+gname+'」，已切換到「'+(_userGroup.name||'其他群組')+'」');
       /* 與雲端完整同步一次 */
       refreshGroupState(_userGroup.id);
@@ -3900,6 +3896,7 @@ function doDeleteGroup(){
       renderProjList();renderStaffList();renderDeptList();
       updateGroupSelect();updateUserUI();showAdminCloudSection();
       syncGroupNameToCo();          /* 清空公司名稱 */
+      resetReportForGroupSwitch();  /* 日報內容重置 */
       updateFormMode();
       showToast('✅ 已刪除群組「'+gname+'」');
       /* 與雲端完整同步一次 */
@@ -4452,7 +4449,20 @@ function switchActiveGroup(groupId){
   updateUserUI();
   showAdminCloudSection();
   reloadGroupSettings();
+  /* 切換群組 → 重置日報內容（工程/單號/每日欄位/照片/附件全部清空）*/
+  resetReportForGroupSwitch();
   showToast('已切換到：'+(_userGroup.name||'群組'));
+}
+
+/* 切換群組時完整重置日報（含工程名稱與派任單號）*/
+function resetReportForGroupSwitch(){
+  clearDailyFields();
+  var pEl=document.getElementById('proj');if(pEl)pEl.value='';
+  var oEl=document.getElementById('ono');if(oEl)oEl.value='';
+  var pSel=document.getElementById('proj-sel');if(pSel)pSel.value='';
+  var oSel=document.getElementById('ono-sel');if(oSel)oSel.value='';
+  _curOno='';_curDate=v('rdate');
+  updateDraftBanner();
 }
 
 /* 加入群組（支援從用戶選單的額外輸入框）*/
@@ -5195,6 +5205,7 @@ function showCloudStats(){
 }
 
 var _cloudStatsCache=null;
+var APP_BUILD='v2.4-20261007-1037';
 
 /* 初始化時呼叫 */
 initFirebase();
@@ -5269,7 +5280,7 @@ function dismissPWABanner() {
         <div id="auth-name-row" class="fld" style="margin-bottom:12px;display:none"><label>姓名（暱稱）</label><input type="text" id="auth-name" placeholder="例：劉德華"></div>
         <div id="auth-error" style="color:#dc2626;font-size:12px;min-height:18px;margin-bottom:8px;text-align:center"></div>
         <button id="auth-submit" onclick="doAuth()" style="width:100%;background:linear-gradient(135deg,#3d5a80,#2a4060);color:#fff;border:none;padding:13px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">登入</button>
-        <div style="text-align:center;margin-top:12px;font-size:11px;color:#94a3b8">版本 2.1 · Firebase 雲端同步</div>
+        <div style="text-align:center;margin-top:12px;font-size:11px;color:#94a3b8">版本 <span id="app-build-login">2.1</span> · Firebase 雲端同步</div>
       </div>
     </div>
   </div>
@@ -5411,8 +5422,8 @@ function dismissPWABanner() {
           <div style="font-weight:700;font-size:14px;margin-bottom:12px;color:#0369a1" id="proj-form-title">新增工程</div>
           <input type="hidden" id="proj-form-idx" value="">
           <div class="fg fg1" style="gap:10px">
-            <div class="fld"><label>工程名稱 *</label><input type="text" id="proj-form-name" placeholder="例：宏碩系統廠房增建工程"></div>
-            <div class="fld"><label>派任單號 *</label><input type="text" id="proj-form-order" placeholder="例：I03201"></div>
+            <div class="fld"><label>工程名稱 *</label><input type="text" id="proj-form-name" placeholder="某某新建工程"></div>
+            <div class="fld"><label>派任單號 *</label><input type="text" id="proj-form-order" placeholder="單號"></div>
           </div>
           <div class="fg" style="margin-top:10px">
             <div class="fld"><label>開工日期</label><input type="date" id="proj-form-start"></div>
